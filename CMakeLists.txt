@@ -227,7 +227,10 @@ endif()
 ###### END BUILD + COMPILER FLAGS
 
 
-set(SOURCES
+
+add_library(moo SHARED)
+
+target_sources(moo PRIVATE
     # base sources for GDOP and similar problems
     src/base/fLGR.cpp
     src/base/trajectory.cpp
@@ -257,7 +260,11 @@ set(SOURCES
     src/simulation/radau/test.cpp
 )
 
-add_library(moo SHARED ${SOURCES})
+
+option(MOO_ENABLE_GDOPT "Build MOO with GDOPT support" FALSE)
+if (MOO_ENABLE_GDOPT) 
+  target_sources(moo PRIVATE src/interfaces/gdopt/main_gdopt.cpp)
+endif ()
 
 target_include_directories(moo
   PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -442,3 +449,4 @@ install(TARGETS moo
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+
