@@ -18,17 +18,34 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#ifndef MOO_C_GDOPT_GENERATED
-#define MOO_C_GDOPT_GENERATED
+#ifndef MOO_RADAU_BUILDER_H
+#define MOO_RADAU_BUILDER_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <vector>
 
-int main_generated(int argc, char** argv);
+#include <simulation/integrator/builder.h>
+#include <simulation/radau/radau_integrator.h>
 
-#ifdef __cplusplus
-}
-#endif
+namespace Simulation {
 
-#endif // MOO_C_GDOPT_GENERATED
+class RadauBuilder : public IntegratorBuilder<RadauBuilder, RadauIntegrator>{
+public:
+    RadauBuilder(ODEFunction ode_func_, f64* x_start_values_, int x_size_)
+    : IntegratorBuilder(ode_func_, x_start_values_, x_size_) {}
+
+    RadauBuilder& radau_scheme(RadauScheme radau_scheme_);
+    RadauBuilder& radau_h0(f64 h_init_);
+    RadauBuilder& radau_tol(f64 atol_, f64 rtol_);
+
+    RadauIntegrator build() const override;
+
+private:
+    RadauScheme scheme = RadauScheme::ADAPTIVE;
+    f64 h_init = 1e-6;
+    f64 atol = 1e-10;
+    f64 rtol = 1e-10;
+};
+
+} // namespace Simulation
+
+#endif // MOO_RADAU_BUILDER_H
