@@ -28,6 +28,7 @@
 #include <base/fixed_vector.h>
 #include <base/nlp_structs.h>
 #include <base/export.h>
+#include <base/log.h>
 
 
 enum class BlockType {
@@ -129,7 +130,8 @@ struct MOO_EXPORT BlockSparsity {
             case BlockType::Exact:
                 return block[row][col];
             default:
-               throw std::runtime_error("BlockType in BlockSparsity::access().");
+                LOG_ERROR("Unknown BlockType in BlockSparsity::access().");
+                abort();
         }
     }
 
