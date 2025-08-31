@@ -226,8 +226,6 @@ endif()
 
 ###### END BUILD + COMPILER FLAGS
 
-
-
 add_library(moo SHARED)
 
 target_sources(moo PRIVATE
@@ -255,10 +253,6 @@ target_sources(moo PRIVATE
     # C interface
     src/interfaces/c/problem.cpp
 
-    # GDOPT interface
-    src/interfaces/gdopt/main_gdopt.cpp
-    src/interfaces/gdopt/generated.c
-
     # Sources to call simulations for C interface
     src/simulation/integrator/integrator_util.cpp
     src/simulation/integrator/integrator.cpp
@@ -267,11 +261,12 @@ target_sources(moo PRIVATE
     src/simulation/radau/test.cpp
 )
 
-
-option(MOO_ENABLE_GDOPT "Build MOO with GDOPT support" FALSE)
+option(MOO_ENABLE_GDOPT "Build MOO with GDOPT support" ON)
 if (MOO_ENABLE_GDOPT) 
-  target_sources(moo PRIVATE src/interfaces/gdopt/main_gdopt.cpp)
+    message(STATUS "Building MOO with GDOPT support")
+    target_sources(moo PRIVATE src/interfaces/gdopt/main_gdopt.cpp )
 endif ()
+
 
 target_include_directories(moo
   PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -457,3 +452,13 @@ install(TARGETS moo
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
+option(MOO_ENABLE_GDOPT_EXAMPLE "Build MOO with GDOPT example executable" OFF)
+if(MOO_ENABLE_GDOPT_EXAMPLE) 
+    add_executable(gdopt src/runner/entry.cpp src/runner/generated.c)
+    target_include_directories(gdopt PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+    )
+    target_link_libraries(gdopt PRIVATE moo)
+    message(STATUS "Building example executable ./gdopt")
+endif()

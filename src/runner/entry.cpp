@@ -18,20 +18,12 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#ifndef MOO_C_GDOPT_MAIN
-#define MOO_C_GDOPT_MAIN
+#include <runner/generated.h>
+#include <simulation/radau/test.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <base/log.h>
 
-#include <base/export.h>
-#include <interfaces/c/structures.h>
-
-MOO_EXPORT int main_gdopt(int argc, char** argv, c_problem_t* c_problem);
-
-#ifdef __cplusplus
+int main(int argc, char** argv) {
+    Simulation::radau_wrapper_test();
+    main_generated(argc, argv);
 }
-#endif
-
-#endif // MOO_C_GDOPT_MAIN
