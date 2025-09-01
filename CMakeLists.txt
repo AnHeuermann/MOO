@@ -3,6 +3,16 @@ project(moo LANGUAGES C CXX Fortran)
 
 set(CMAKE_CXX_STANDARD 17)
 
+### Options
+
+option(MOO_MAKEPROGRAM "Make program used to build third party dependencies of MOO library")
+
+set(MOO_LAPACK_LIB "" CACHE STRING "Override path to LAPACK library")
+set(MOO_METIS_LIB "" CACHE STRING "Override path to METIS library")
+set(MOO_GFORTRAN_LIB "" CACHE STRING "Override path to gfortran library")
+
+option(WITH_RADAU "Enable RADAU build and linking" ON)
+
 ##### START setup
 
 message(STATUS "C Compiler: ${CMAKE_C_COMPILER}")
@@ -17,6 +27,8 @@ else()
     set(LIB_EXT .so)
 endif()
 
+message(STATUS "Target library extension: ${LIB_EXT}")
+
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
     set(IS_GCC TRUE)
 else()
@@ -26,8 +38,6 @@ endif()
 ##### END setup
 
 ##### START make
-
-option(MOO_MAKEPROGRAM "Make program used to build third party dependencies of MOO library")
 
 # A make program is necessary for the legacy configure builds of Ipopt and MUMPS
 if(${MOO_MAKEPROGRAM})
@@ -59,10 +69,6 @@ find_package(PkgConfig)
 ###### START DEPENDENCIES
 
 pkg_check_modules(COINHSL coinhsl)
-
-set(MOO_LAPACK_LIB "" CACHE STRING "Override path to LAPACK library")
-set(MOO_METIS_LIB "" CACHE STRING "Override path to METIS library")
-set(MOO_GFORTRAN_LIB "" CACHE STRING "Override path to gfortran library")
 
 set(MOO_EXTRA_LIBS "")
 
@@ -152,18 +158,14 @@ if(NOT DEFINED MOO_BUILD_TYPE)
 endif()
 
 if(MOO_NATIVE_BUILD)
-    set(MOO_NATIVE_BUILD_FLAGS
+    set(MOO_O3_BUILD_FLAGS
+        -O3
         -march=native
-        -mtune=native
-        -funroll-loops
-        -ftree-vectorize
-        -fprefetch-loop-arrays
     )
-    string(JOIN " " MOO_NATIVE_BUILD_FLAGS_STRING ${MOO_NATIVE_BUILD_FLAGS})
-    message(STATUS "Adding native CPU optimizations: ${MOO_NATIVE_BUILD_FLAGS_STRING}")
+    message(STATUS "Adding native CPU optimizations: ${MOO_O3_BUILD_FLAGS}")
 
 else()
-    set(MOO_NATIVE_BUILD_FLAGS_STRING "")
+    set(MOO_O3_BUILD_FLAGS -O3)
     message(STATUS "MOO_NATIVE_BUILD not defined: adding no additional compiler flags")
 endif()
 
@@ -219,98 +221,95 @@ target_compile_options(fmt PRIVATE -fPIC)
 # TODO: enable build w/o mumps or ipopt - alternative NLP solvers
 # TODO: remove Ipopt examples / tutorial as they bloat the build
 
+# for redistribution, we always call this manually as not all platforms can run this script
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/third-party/mumps/MUMPS)
-  message(STATUS "Downloading mumps sources...")
-  execute_process(COMMAND ./get.Mumps WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/third-party/mumps OUTPUT_QUIET)
+    message(STATUS "Downloading mumps sources...")
+    execute_process(COMMAND ./get.Mumps WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/third-party/mumps OUTPUT_QUIET)
 endif()
 
-file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/third-party/mumps)
-
-# TODO: add CMake compiler for configures
-#       CC=${CMAKE_C_COMPILER}
-#       CXX=${CMAKE_CXX_COMPILER}
-#       FC=${CMAKE_Fortran_COMPILER}
-
-add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/third-party/mumps/config.status
-    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/third-party/mumps/configure
-            ADD_CFLAGS=-O3\ ${MOO_NATIVE_BUILD_FLAGS_STRING}
-            ADD_FCFLAGS=-O3\ ${MOO_NATIVE_BUILD_FLAGS_STRING}
-            ADD_CXXFLAGS=-O3\ ${MOO_NATIVE_BUILD_FLAGS_STRING}
-            --with-lapack="${MOO_LAPACK_LIB}"
-            --enable-shared=no
-            --enable-static=yes
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/third-party/mumps
-    COMMENT "Configuring MUMPS library..."
+ExternalProject_Add(coinmumps
+    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/third-party/mumps
+    BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/third-party/mumps
+    CONFIGURE_COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/third-party/mumps/configure
+        CC=${CMAKE_C_COMPILER}
+        CXX=${CMAKE_CXX_COMPILER}
+        FC=${CMAKE_Fortran_COMPILER}
+        ADD_CFLAGS=-O3
+        ADD_FCFLAGS=-O3
+        ADD_CXXFLAGS=-O3
+        --with-lapack
+        --enable-shared=no
+        --enable-static=yes
+    BUILD_COMMAND ${MAKEPROGRAM}
+    INSTALL_COMMAND ""
+    BUILD_ALWAYS 1
+    BUILD_BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/third-party/mumps/.libs/libcoinmumps.a
 )
 
-add_custom_target(configure_mumps
-    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/third-party/mumps/config.status
-    COMMENT "Ensuring MUMPS is configured."
+add_library(moo::coinmumps STATIC IMPORTED GLOBAL)
+
+set_target_properties(moo::coinmumps PROPERTIES
+    IMPORTED_LOCATION ${CMAKE_CURRENT_BINARY_DIR}/third-party/mumps/.libs/libcoinmumps.a
+    INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/third-party/mumps/MUMPS/include
 )
 
-add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/third-party/mumps/.libs/libcoinmumps.a
-    DEPENDS configure_mumps
-    COMMAND ${MAKEPROGRAM}
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/third-party/mumps
-    COMMENT "Building MUMPS library..."
+add_dependencies(moo::coinmumps coinmumps)
+
+set(MUMPS_LFLAGS "-L${CMAKE_CURRENT_BINARY_DIR}/third-party/mumps/.libs")
+
+set(MUMPS_CFLAGS
+    -DCOIN_USE_MUMPS_MPI_H
+    -I${CMAKE_CURRENT_BINARY_DIR}/third-party/mumps
+    -I${CMAKE_CURRENT_SOURCE_DIR}/third-party/mumps/MUMPS/include
+    -I${CMAKE_CURRENT_SOURCE_DIR}/third-party/mumps/MUMPS/libseq
 )
 
-add_custom_target(coinmumps-build DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/third-party/mumps/.libs/libcoinmumps.a)
-add_library(moo::coinmumps STATIC IMPORTED)
-add_dependencies(moo::coinmumps coinmumps-build)
-set_property(TARGET moo::coinmumps PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_BINARY_DIR}/third-party/mumps/.libs/libcoinmumps.a)
+string(JOIN " " MUMPS_CFLAGS_STRING ${MUMPS_CFLAGS})
 
-file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/third-party/ipopt)
-
-add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/third-party/ipopt/config.status
-    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/third-party/ipopt/configure
-            ADD_CFLAGS=-O3\ ${MOO_NATIVE_BUILD_FLAGS_STRING}
-            ADD_FCFLAGS=-O3\ ${MOO_NATIVE_BUILD_FLAGS_STRING}
-            ADD_CXXFLAGS=-O3\ ${MOO_NATIVE_BUILD_FLAGS_STRING}
-            --with-lapack="${MOO_LAPACK_LIB}"
-            --without-pardiso
-            --with-mumps
-            --with-mumps-lflags='-L${CMAKE_CURRENT_BINARY_DIR}/third-party/mumps/.libs'
-            --with-mumps-cflags='-DCOIN_USE_MUMPS_MPI_H -I${CMAKE_CURRENT_BINARY_DIR}/third-party/mumps -I${CMAKE_CURRENT_SOURCE_DIR}/third-party/mumps/MUMPS/include -I${CMAKE_CURRENT_SOURCE_DIR}/third-party/mumps/MUMPS/libseq'
-            --enable-shared=no
-            --enable-static=yes
-    COMMAND ${MAKEPROGRAM} clean
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/third-party/ipopt
-    COMMENT "Configuring IPOPT library..."
+ExternalProject_Add(ipopt
+    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/third-party/ipopt
+    BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/third-party/ipopt
+    CONFIGURE_COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/third-party/ipopt/configure
+        CC=${CMAKE_C_COMPILER}
+        CXX=${CMAKE_CXX_COMPILER}
+        FC=${CMAKE_Fortran_COMPILER}
+        ADD_CFLAGS=-O3
+        ADD_FCFLAGS=-O3
+        ADD_CXXFLAGS=-O3
+        --with-lapack
+        --without-pardiso
+        --with-mumps
+        --with-mumps-lflags=${MUMPS_LFLAGS}
+        --with-mumps-cflags=${MUMPS_CFLAGS_STRING}
+        --enable-shared=no
+        --enable-static=yes
+        --disable-sipopt
+        --disable-java
+    BUILD_COMMAND ${MAKEPROGRAM}
+    INSTALL_COMMAND ""
+    BUILD_ALWAYS 1
+    BUILD_BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/third-party/ipopt/src/.libs/libipopt.a
 )
 
-add_custom_target(configure_ipopt
-    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/third-party/ipopt/config.status
-    COMMENT "Ensuring IPOPT is configured."
+add_library(moo::ipopt STATIC IMPORTED GLOBAL)
+
+set(IPOPT_INCLUDE_DIRS
+    ${CMAKE_CURRENT_SOURCE_DIR}/third-party/ipopt/src/Interfaces
+    ${CMAKE_CURRENT_SOURCE_DIR}/third-party/ipopt/src/Common
+    ${CMAKE_CURRENT_SOURCE_DIR}/third-party/ipopt/src/Algorithm
+    ${CMAKE_CURRENT_SOURCE_DIR}/third-party/ipopt/src/LinAlg
 )
 
-add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/third-party/ipopt/src/.libs/libipopt.a
-    DEPENDS configure_ipopt
-    COMMAND ${MAKEPROGRAM}
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/third-party/ipopt
-    COMMENT "Building IPOPT library..."
+set_target_properties(moo::ipopt PROPERTIES
+    IMPORTED_LOCATION ${CMAKE_CURRENT_BINARY_DIR}/third-party/ipopt/src/.libs/libipopt.a
+    INTERFACE_INCLUDE_DIRECTORIES "${IPOPT_INCLUDE_DIRS}"
 )
 
-add_custom_target(ipopt-build DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/third-party/ipopt/src/.libs/libipopt.a)
-add_library(moo::ipopt STATIC IMPORTED)
-add_dependencies(moo::ipopt ipopt-build)
-set_property(TARGET moo::ipopt PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_BINARY_DIR}/third-party/ipopt/src/.libs/libipopt.a)
-target_include_directories(moo::ipopt INTERFACE 
-  ${CMAKE_CURRENT_SOURCE_DIR}/third-party/ipopt/src/Interfaces
-  ${CMAKE_CURRENT_SOURCE_DIR}/third-party/ipopt/src/Common
-  ${CMAKE_CURRENT_SOURCE_DIR}/third-party/ipopt/src/Algorithm
-  ${CMAKE_CURRENT_SOURCE_DIR}/third-party/ipopt/src/LinAlg
-)
+add_dependencies(moo::ipopt ipopt)
 
 ###### END MUMPS + Ipopt
 
 ###### START RADAU5
-
-option(WITH_RADAU "Enable RADAU build and linking" ON)
 
 if(WITH_RADAU)
     add_subdirectory(third-party/RADAU)
@@ -341,7 +340,7 @@ if("${MOO_BUILD_TYPE}" STREQUAL "Debug")
     list(APPEND MOO_COMPILE_OPTIONS -O0 -g)
 else()
     message(STATUS "Configuration: RelWithDebInfo / Release")
-    list(APPEND MOO_COMPILE_OPTIONS -O3 -g ${MOO_NATIVE_BUILD_FLAGS})
+    list(APPEND MOO_COMPILE_OPTIONS -g ${MOO_O3_BUILD_FLAGS})
 endif()
 
 target_compile_options(moo PRIVATE ${MOO_COMPILE_OPTIONS})
