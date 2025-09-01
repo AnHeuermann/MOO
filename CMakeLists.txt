@@ -227,7 +227,7 @@ if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/third-party/mumps/MUMPS)
     execute_process(COMMAND ./get.Mumps WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/third-party/mumps OUTPUT_QUIET)
 endif()
 
-ExternalProject_Add(coinmumps
+ExternalProject_Add(moo_coinmumps
     SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/third-party/mumps
     BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/third-party/mumps
     CONFIGURE_COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/third-party/mumps/configure
@@ -242,7 +242,7 @@ ExternalProject_Add(coinmumps
         --enable-static=yes
     BUILD_COMMAND ${MAKEPROGRAM}
     INSTALL_COMMAND ""
-    BUILD_ALWAYS 1
+    BUILD_ALWAYS 0
     BUILD_BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/third-party/mumps/.libs/libcoinmumps.a
 )
 
@@ -253,7 +253,7 @@ set_target_properties(moo::coinmumps PROPERTIES
     INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/third-party/mumps/MUMPS/include
 )
 
-add_dependencies(moo::coinmumps coinmumps)
+add_dependencies(moo::coinmumps moo_coinmumps)
 
 set(MUMPS_LFLAGS "-L${CMAKE_CURRENT_BINARY_DIR}/third-party/mumps/.libs")
 
@@ -266,7 +266,7 @@ set(MUMPS_CFLAGS
 
 string(JOIN " " MUMPS_CFLAGS_STRING ${MUMPS_CFLAGS})
 
-ExternalProject_Add(ipopt
+ExternalProject_Add(moo_ipopt
     SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/third-party/ipopt
     BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/third-party/ipopt
     CONFIGURE_COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/third-party/ipopt/configure
@@ -287,7 +287,7 @@ ExternalProject_Add(ipopt
         --disable-java
     BUILD_COMMAND ${MAKEPROGRAM}
     INSTALL_COMMAND ""
-    BUILD_ALWAYS 1
+    BUILD_ALWAYS 0
     BUILD_BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/third-party/ipopt/src/.libs/libipopt.a
 )
 
@@ -305,7 +305,7 @@ set_target_properties(moo::ipopt PROPERTIES
     INTERFACE_INCLUDE_DIRECTORIES "${IPOPT_INCLUDE_DIRS}"
 )
 
-add_dependencies(moo::ipopt ipopt)
+add_dependencies(moo::ipopt moo_ipopt)
 
 ###### END MUMPS + Ipopt
 
