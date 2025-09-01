@@ -89,6 +89,8 @@ else()
     endif()
 endif()
 
+string(JOIN " " MOO_LAPACK_LIB_STRING ${MOO_LAPACK_LIB})
+
 # METIS
 if(MOO_METIS_LIB)
     message(STATUS "Using user-provided METIS: ${MOO_METIS_LIB}")
@@ -223,8 +225,18 @@ target_compile_options(fmt PRIVATE -fPIC)
 
 # for redistribution, we always call this manually as not all platforms can run this script
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/third-party/mumps/MUMPS)
+    message(STATUS "MUMPS sources not found. Trying to download MUMPS sources")
+    message(STATUS "Downloading MUMPS sources requires patch")
+    find_program(PATCH_EXECUTABLE patch)
+    if (PATCH_EXECUTABLE)
+        message(STATUS "patch found: ${PATCH_EXECUTABLE}")
+    else()
+        message(WARNING "patch not found! MUMPS download might fail.")
+    endif()
     message(STATUS "Downloading mumps sources...")
-    execute_process(COMMAND ./get.Mumps WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/third-party/mumps OUTPUT_QUIET)
+    execute_process(COMMAND sh ./get.Mumps WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/third-party/mumps)
+else()
+    message(STATUS "MUMPS sources found")
 endif()
 
 ExternalProject_Add(moo_coinmumps
@@ -237,7 +249,7 @@ ExternalProject_Add(moo_coinmumps
         ADD_CFLAGS=-O3
         ADD_FCFLAGS=-O3
         ADD_CXXFLAGS=-O3
-        --with-lapack
+        --with-lapack=${MOO_LAPACK_LIB_STRING}
         --enable-shared=no
         --enable-static=yes
     BUILD_COMMAND ${MAKEPROGRAM}
@@ -276,7 +288,7 @@ ExternalProject_Add(moo_ipopt
         ADD_CFLAGS=-O3
         ADD_FCFLAGS=-O3
         ADD_CXXFLAGS=-O3
-        --with-lapack
+        --with-lapack=${MOO_LAPACK_LIB_STRING}
         --without-pardiso
         --with-mumps
         --with-mumps-lflags=${MUMPS_LFLAGS}
