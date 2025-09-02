@@ -5,7 +5,9 @@ set(CMAKE_CXX_STANDARD 17)
 
 ### Options
 
-option(MOO_MAKEPROGRAM "Make program used to build third party dependencies of MOO library")
+set(MOO_MAKEPROGRAM "" CACHE STRING "Make program used to build third party dependencies of MOO library.")
+
+set(MOO_SUBMAKE_FLAGS "" CACHE STRING "Extra flags passed to sub-make when building MUMPS/Ipopt (leave empty for standard hierarchy, set e.g. -j{PROCS} for parallel build, or -j1 for single-threaded). This has no effect if CMake generator is Unix or MSYS Makefiles!")
 
 set(MOO_LAPACK_LIB "" CACHE STRING "Override path to LAPACK library")
 set(MOO_METIS_LIB "" CACHE STRING "Override path to METIS library")
@@ -35,29 +37,80 @@ else()
     set(IS_GCC FALSE)
 endif()
 
+set(MOO_IS_MAKEFILE_GENERATOR OFF)
+if(CMAKE_GENERATOR STREQUAL "Unix Makefiles" OR CMAKE_GENERATOR STREQUAL "MSYS Makefiles")
+    set(MOO_IS_MAKEFILE_GENERATOR ON)
+endif()
+
 ##### END setup
 
 ##### START make
 
 # A make program is necessary for the legacy configure builds of Ipopt and MUMPS
-if(${MOO_MAKEPROGRAM})
-    set(MAKEPROGRAM "${MOO_MAKEPROGRAM}")
-else()
-    if($ENV{MAKE})
-        set(MAKEPROGRAM "$ENV{MAKE}")
+
+set(MOO_MAKEPROGRAM_INTERNAL "")
+set(MOO_SUBMAKE_FLAGS_INTERNAL "")
+set(MOO_SUBMAKE_CMD "")
+
+# determine the make program if not already defined
+if(MOO_MAKEPROGRAM STREQUAL "")
+    if(MOO_IS_MAKEFILE_GENERATOR)
+        # Unix/MSYS Makefile generators support $(MAKE) environment variable -> needed for parallel jobserver makes
+        set(MOO_MAKEPROGRAM_INTERNAL "\$(MAKE)")
+        message(STATUS "Using automatic parallel jobserver make (generator supports $(MAKE)).")
+    # fallbacks cause MOO_MAKEPROGRAM not set
+    elseif(DEFINED ENV{MAKE})
+        # use MAKE from environment
+        set(MOO_MAKEPROGRAM_INTERNAL "$ENV{MAKE}")
+        message(STATUS "Detected MAKE from environment: using ${MOO_MAKEPROGRAM_INTERNAL}")
     else()
-        # Now we might be in trouble
-        find_program(MAKEPROGRAM "make")
-        if("${MAKEPROGRAM}" STREQUAL "MAKEPROGRAM-NOTFOUND") # last ditch
-            set(MAKEPROGRAM "$$(MAKE)")
-            message(WARNING "Could not find a make program. Falling back to $(MAKE) enviroment variable. Please set MOO_MAKEPROGRAM to specify an appropriate make program.")
-            if("${CMAKE_MAKE_PROGRAM}" MATCHES "ninja$")
-                message(SEND_ERROR "Ninja build does not support reading $(MAKE) environment variable. This will probably fail.")
+        # find in PATH
+        message(STATUS "Attempting to find a make program in PATH...")
+        find_program(MAKE_PROGRAM "make")
+        set(MOO_MAKEPROGRAM_INTERNAL "${MAKE_PROGRAM}")
+        if(MAKE_PROGRAM STREQUAL "MAKE_PROGRAM-NOTFOUND")
+            set(MOO_MAKEPROGRAM_INTERNAL "\$(MAKE)")
+            message(WARNING "Could not find a make program in PATH. Falling back to $(MAKE) environment variable. Please set MOO_MAKEPROGRAM to specify an appropriate make program.")
+            if(CMAKE_MAKE_PROGRAM MATCHES "ninja$")
+                message(SEND_ERROR "Ninja build does not support reading $(MAKE) environment variable. Build will likely fail.")
             endif()
+        else()
+            message(STATUS "Found make program in PATH: ${MAKE_PROGRAM}")
         endif()
     endif()
+else()
+    set(MOO_MAKEPROGRAM_INTERNAL "${MOO_MAKEPROGRAM}")
+    message(STATUS "Using user specified MOO_MAKEPROGRAM: ${MOO_MAKEPROGRAM_INTERNAL}.")
 endif()
-message(STATUS "Make program used to build third party dependencies of MOO library: ${MAKEPROGRAM}")
+
+# determine sub-make flags only if the generator does not support automatic jobserver
+if(NOT MOO_IS_MAKEFILE_GENERATOR)
+    # handle parallelism
+    if(MOO_SUBMAKE_FLAGS STREQUAL "")
+        message(WARNING "Cannot use automatic parallel make jobserver, because generator does not support \$(MAKE). "
+                        "MOO_SUBMAKE_FLAGS not set: using default resolution order (user > MAKEFLAGS > half of available cores). "
+                        "For a safe single-threaded build, set MOO_SUBMAKE_FLAGS=\"\" explicitly.")
+        if(DEFINED ENV{MAKEFLAGS} AND NOT "$ENV{MAKEFLAGS}" STREQUAL "")
+            set(MOO_SUBMAKE_FLAGS_INTERNAL "$ENV{MAKEFLAGS}")
+            message(STATUS "Detected MAKEFLAGS from environment: ${MOO_SUBMAKE_FLAGS_INTERNAL}")
+        else()
+            include(ProcessorCount)
+            ProcessorCount(NPROC)
+            math(EXPR SUBMAKE_JOBS "${NPROC}/2")
+            if(SUBMAKE_JOBS LESS 1)
+                set(SUBMAKE_JOBS 1)
+            endif()
+            set(MOO_SUBMAKE_FLAGS_INTERNAL "-j${SUBMAKE_JOBS}")
+            message(STATUS "Using default sub-make parallelism (half of available cores, ${MOO_SUBMAKE_FLAGS_INTERNAL})")
+        endif()
+    else()
+        set(MOO_SUBMAKE_FLAGS_INTERNAL "${MOO_SUBMAKE_FLAGS}")
+        message(STATUS "Using user-specified sub-make flags: ${MOO_SUBMAKE_FLAGS_INTERNAL}")
+    endif()
+endif()
+
+set(MOO_SUBMAKE_CMD ${MOO_MAKEPROGRAM_INTERNAL} ${MOO_SUBMAKE_FLAGS_INTERNAL})
+message(STATUS "Make command used to build third-party dependencies of MOO library: ${MOO_SUBMAKE_CMD}")
 
 ##### END make
 
@@ -252,7 +305,7 @@ ExternalProject_Add(moo_coinmumps
         --with-lapack=${MOO_LAPACK_LIB_STRING}
         --enable-shared=no
         --enable-static=yes
-    BUILD_COMMAND ${MAKEPROGRAM}
+    BUILD_COMMAND ${MOO_SUBMAKE_CMD}
     INSTALL_COMMAND ""
     BUILD_ALWAYS 0
     BUILD_BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/third-party/mumps/.libs/libcoinmumps.a
@@ -297,7 +350,7 @@ ExternalProject_Add(moo_ipopt
         --enable-static=yes
         --disable-sipopt
         --disable-java
-    BUILD_COMMAND ${MAKEPROGRAM}
+    BUILD_COMMAND ${MOO_SUBMAKE_CMD}
     INSTALL_COMMAND ""
     BUILD_ALWAYS 0
     BUILD_BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/third-party/ipopt/src/.libs/libipopt.a
