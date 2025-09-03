@@ -50,7 +50,7 @@ std::unique_ptr<MeshUpdate> NoMeshRefinement::operator()(const Mesh& mesh, const
 }
 
 // no emitter
-int NoEmitter::operator()(const Trajectory& trajectory) {
+int NoEmitter::operator()(const PrimalDualTrajectory& trajectory) {
     LOG_WARNING("No Emitter strategy set: returning -1.");
     return -1;
 }
@@ -317,7 +317,7 @@ std::unique_ptr<PrimalDualTrajectory> SimulationInitialization::operator()(const
 // csv emit
 CSVEmitter::CSVEmitter(std::string filename) : filename(filename) {}
 
-int CSVEmitter::operator()(const Trajectory& trajectory) { return trajectory.to_csv(filename); }
+int CSVEmitter::operator()(const PrimalDualTrajectory& trajectory) { return trajectory.primals->to_csv(filename); }
 
 // simulation-based verification
 SimulationVerifier::SimulationVerifier(std::shared_ptr<Simulation> simulation,

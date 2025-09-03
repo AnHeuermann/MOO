@@ -64,7 +64,7 @@ f64 globl_rp[RP_SIZE];
 
 // === include data from csv-like files ===
 
-const char* data[FILE_COUNT] = { "/home/linus/Projects/MOO/build/out.csv" };
+const char* data[FILE_COUNT] = { "optimal_solution.csv" };
 
 // === optimization sparsity and evaluation structures (compile const) ===
 

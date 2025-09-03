@@ -156,7 +156,7 @@ public:
  */
 class MOO_EXPORT Emitter {
 public:
-    virtual int operator()(const Trajectory& trajectory) = 0;
+    virtual int operator()(const PrimalDualTrajectory& trajectory) = 0;
     virtual ~Emitter() = default;
 };
 
@@ -236,7 +236,7 @@ public:
 
 class MOO_EXPORT NoEmitter : public Emitter {
 public:
-    int operator()(const Trajectory& trajectory) override;
+    int operator()(const PrimalDualTrajectory& trajectory) override;
 };
 
 class MOO_EXPORT NoVerifier : public Verifier {
@@ -327,7 +327,7 @@ public:
 
     CSVEmitter(std::string filename);
 
-    int operator()(const Trajectory& trajectory) override;
+    int operator()(const PrimalDualTrajectory& trajectory) override;
 };
 
 // -- verify optimality by full simulation and state comparison with given norm --
@@ -396,7 +396,7 @@ public:
         return (*interpolation)(old_mesh, new_mesh, values);
     }
 
-    auto emit(const Trajectory& trajectory) {
+    auto emit(const PrimalDualTrajectory& trajectory) {
         return (*emitter)(trajectory);
     }
 

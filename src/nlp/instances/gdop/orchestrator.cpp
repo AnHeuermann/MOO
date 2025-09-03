@@ -57,7 +57,7 @@ void MeshRefinementOrchestrator::optimize() {
     }
 
     strategies->verify(gdop, *gdop.get_optimal_solution());
-    strategies->emit(*gdop.get_optimal_solution()->primals);
+    strategies->emit(*gdop.get_optimal_solution());
 
     //gdop.get_optimal_solution()->costates->to_csv("costates_final.csv");
     //gdop.get_optimal_solution()->lower_costates->to_csv("lower_costates_final.csv");
