@@ -6,14 +6,15 @@ set(CMAKE_CXX_STANDARD 17)
 ### Options
 
 set(MOO_MAKEPROGRAM "" CACHE STRING "Make program used to build third party dependencies of MOO library.")
-
 set(MOO_SUBMAKE_FLAGS "" CACHE STRING "Extra flags passed to sub-make when building MUMPS/Ipopt (leave empty for standard hierarchy, set e.g. -j{PROCS} for parallel build, or -j1 for single-threaded). This has no effect if CMake generator is Unix or MSYS Makefiles!")
 
 set(MOO_LAPACK_LIB "" CACHE STRING "Override path to LAPACK library")
 set(MOO_METIS_LIB "" CACHE STRING "Override path to METIS library")
 set(MOO_GFORTRAN_LIB "" CACHE STRING "Override path to gfortran library")
 
-option(WITH_RADAU "Enable RADAU build and linking" ON)
+option(MOO_WITH_RADAU "Enable RADAU build and linking" ON)
+option(MOO_WITH_GDOPT "Build MOO with GDOPT support" ON)
+option(MOO_WITH_GDOPT_EXAMPLE "Build MOO with GDOPT example executable" OFF)
 
 ##### START setup
 
@@ -261,12 +262,10 @@ target_sources(moo PRIVATE
     src/simulation/radau/test.cpp
 )
 
-option(MOO_ENABLE_GDOPT "Build MOO with GDOPT support" ON)
-if (MOO_ENABLE_GDOPT) 
+if (MOO_WITH_GDOPT)
     message(STATUS "Building MOO with GDOPT support")
     target_sources(moo PRIVATE src/interfaces/gdopt/main_gdopt.cpp )
 endif ()
-
 
 target_include_directories(moo
   PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -282,6 +281,8 @@ target_compile_options(fmt PRIVATE -fPIC)
 
 ###### START MUMPS + Ipopt
 
+# TODO: add option to use binaries of mumps and ipopt that are already available
+#       or fetched from MOO release - targets: Linux, MacOS, Windows (MSYS compatible)
 # TODO: enable build w/o mumps or ipopt - alternative NLP solvers
 # TODO: remove Ipopt examples / tutorial as they bloat the build
 
@@ -385,7 +386,7 @@ add_dependencies(moo::ipopt moo_ipopt)
 
 ###### START RADAU5
 
-if(WITH_RADAU)
+if(MOO_WITH_RADAU)
     add_subdirectory(third-party/RADAU)
 endif()
 
@@ -424,7 +425,7 @@ target_link_libraries(moo PUBLIC fmt)
 target_link_libraries(moo PRIVATE moo::ipopt moo::coinmumps)
 target_link_libraries(moo PRIVATE ${MOO_EXTRA_LIBS})
 
-if(WITH_RADAU)
+if(MOO_WITH_RADAU)
     target_link_libraries(moo PRIVATE radau)
 endif()
 
@@ -452,8 +453,7 @@ install(TARGETS moo
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
-option(MOO_ENABLE_GDOPT_EXAMPLE "Build MOO with GDOPT example executable" OFF)
-if(MOO_ENABLE_GDOPT_EXAMPLE) 
+if(MOO_WITH_GDOPT_EXAMPLE)
     add_executable(gdopt src/runner/entry.cpp src/runner/generated.c)
     target_include_directories(gdopt PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include

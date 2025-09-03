@@ -1,9 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
-option(WITH_RADAU "Build and link with RADAU library" TRUE)
-
-if(WITH_RADAU)
-    message(STATUS "Library RADAU will be built from source and linked (WITH_RADAU=TRUE)")
+if(MOO_WITH_RADAU)
+    message(STATUS "Library RADAU will be built from source and linked (MOO_WITH_RADAU=TRUE)")
 
     project(radau)
 
@@ -21,6 +19,6 @@ if(WITH_RADAU)
     target_include_directories(radau PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 else()
-  message(STATUS "Library 'WITH_RADAU' is disabled (WITH_RADAU=FALSE)")
+  message(STATUS "Library 'MOO_WITH_RADAU' is disabled (MOO_WITH_RADAU=FALSE)")
 endif()
 
