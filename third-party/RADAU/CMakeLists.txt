@@ -14,7 +14,7 @@ if(WITH_RADAU)
         dc_lapack.f
     )
 
-    target_compile_options(radau PUBLIC -O3 -fPIC ${MOO_NATIVE_BUILD_FLAGS})
+    target_compile_options(radau PUBLIC -O3 -fPIC)
 
     target_link_libraries(radau PUBLIC ${MOO_LAPACK_LIB} ${MOO_GFORTRAN_LIB})
 
