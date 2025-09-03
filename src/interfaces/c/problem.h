@@ -108,9 +108,9 @@ public:
 private:
     Problem(c_problem_t* c_problem, const Mesh& mesh, std::shared_ptr<Trajectory[]> raw_data);
 
-    std::shared_ptr<Trajectory[]> raw_data;
-    std::unique_ptr<Trajectory[]> interpolated_data;
-    FixedVector<f64> flat_interpolated_data;
+    std::shared_ptr<Trajectory[]> raw_data;           // raw array of Trajectories, read from the user
+    std::unique_ptr<Trajectory[]> interpolated_data;  // raw_data but interpolated onto a given mesh
+    FixedVector<f64> flat_interpolated_input_data;    // flat representation of interpolated_data.u, owner field of c_problem->data
 
     void fill_runtime_parameters();
     void fill_data(const Mesh& mesh);

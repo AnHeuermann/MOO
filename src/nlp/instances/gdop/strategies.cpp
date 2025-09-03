@@ -481,7 +481,7 @@ std::unique_ptr<MeshUpdate> L2BoundaryNorm::operator()(const Mesh& mesh, const P
         // phase II - non-smoothness detection
         std::set<f64> set_new_grid;
 
-        // p', p'' in `Enhancing fLGR-Based Dynamic Optimization through Adaptive Mesh Refinement` (Algorithm 3.2)
+        // p', p'' in `Enhancing Collocation-Based Dynamic Optimization through Adaptive Mesh Refinement` (Algorithm 3.2)
         FixedVector<f64> p_1(fLGR::get_max_scheme() + 1);
         FixedVector<f64> p_2(fLGR::get_max_scheme() + 1);
 

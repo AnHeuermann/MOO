@@ -28,7 +28,7 @@
 #define U_SIZE 1
 #define P_SIZE 1
 
-#define RP_SIZE 2
+#define RP_SIZE 1
 
 #define R_SIZE 0
 #define G_SIZE 0
@@ -37,7 +37,7 @@
 #define HAS_LAGRANGE true
 
 
-#define FILE_COUNT 1
+#define FILE_COUNT 0
 
 // === declare global variables (values can be influenced by runtime parameters) ===
 
@@ -62,9 +62,30 @@ f64 globl_r_nominal[R_SIZE];
 
 f64 globl_rp[RP_SIZE];
 
+// TODO: include also csv for file init?
+
 // === include data from csv-like files ===
 
-const char* data[FILE_COUNT] = { "optimal_solution.csv" };
+const char* data[FILE_COUNT]; // = { "inputpath.csv" };
+
+/* data is available in the callback functions as f64* data (data at time of evaluation)
+   the control columns of the csvs are extracted and sorted as a flat array
+        [CSV1: [col1, col2, ..., colN], CSV2: [col1, col2, ..., colM], ...]
+   the constant parameters (static section) are written to the passed runtime parameter array
+   these do not change over time
+
+ example CSV like format
+
+# time: 0                      // time column = 0.00000000000000000, ...
+# dynamic: "x", [1]            // dynamic (time-varying) column for states = 1.50000000000000000, ...
+# dynamic: "u", [2]            // dynamic (time-varying) column for controls = -0.62864318974690347, ...
+# static: "p", [3]             // static (time-varying) column for parameters = 0.02500176076771821
+t,x_0,u_0,p_0
+0.00000000000000000,1.50000000000000000,-0.62864318974690347,0.02500176076771821
+0.01445750910019651,1.46989539310990791,-0.61617345328311646
+0.07616008346272038,1.34811292027240026,-0.56572950137448774
+
+*/
 
 // === optimization sparsity and evaluation structures (compile const) ===
 
@@ -114,7 +135,7 @@ coo_t globl_ode_jac = {
 };
 
 void ode_eval_f(const f64* x, const f64* u, const f64* p, f64 t, const f64* data, f64* f, void* user_data) {
-    f[0] = -x[0] + u[0] + p[0]; //  + data[2] - globl_rp[0] * globl_rp[1]
+    f[0] = -x[0] + u[0] + p[0];
 }
 
 void ode_jac_f(const f64* x, const f64* u, const f64* p, f64 t, const f64* data, f64* dfdx, void* user_data) {

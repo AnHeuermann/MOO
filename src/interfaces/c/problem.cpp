@@ -313,6 +313,29 @@ f64* Dynamics::get_data(f64 t) {
     return ret_ptr;
 }
 
+/**
+ * @brief Get the sum of all sizes of the user-provided data trajectories.
+ */
+size_t accumulate_data_size(c_problem_t* c_problem, std::unique_ptr<ControlTrajectory[]>& raw_ctrl_data) {
+    size_t size = 0;
+    for (int file_idx = 0; file_idx < c_problem->data_file_count; file_idx++) {
+        size += raw_ctrl_data[file_idx].u.size();
+    }
+    return size;
+}
+
+/**
+ * @brief Extract the controls of the raw data trajectories. Allows for interpolation using builtin
+ *        ControlTrajectory utils.
+ */
+std::unique_ptr<ControlTrajectory[]> extract_ctrl_data(c_problem_t* c_problem, std::shared_ptr<Trajectory[]>& raw_data) {
+    auto ctrl = std::make_unique<ControlTrajectory[]>(c_problem->data_file_count);
+    for (int file_idx = 0; file_idx < c_problem->data_file_count; file_idx++) {
+        ctrl[file_idx] = raw_data[file_idx].copy_extract_controls();
+    }
+    return ctrl;
+}
+
 Dynamics::Dynamics(const GDOP::ProblemConstants& pc,
                    c_problem_t* c_problem_,
                    std::shared_ptr<Trajectory[]> raw_data)
@@ -366,6 +389,9 @@ GDOP::Problem create_gdop_problem(c_problem_t* c_problem, const Mesh& mesh, std:
     return GDOP::Problem(std::move(fs), std::move(bs),std::move(pc), std::move(dyn));
 }
 
+/**
+ * @brief Read in all trajectories provided by the user
+ */
 std::shared_ptr<Trajectory[]> create_raw_data(c_problem_t* c_problem) {
     if (c_problem->data_file_count == 0) return nullptr;
 
@@ -376,6 +402,59 @@ std::shared_ptr<Trajectory[]> create_raw_data(c_problem_t* c_problem) {
     }
 
     return raw_data;
+}
+
+/**
+ * @brief Extract the parameters of all input files and write them into the
+ *        user-provided contiguous runtime parameter buffer
+ */
+void Problem::fill_runtime_parameters() {
+    size_t offset = 0;
+    for (int file_idx = 0; file_idx < c_problem->data_file_count; file_idx++) {
+        auto const& raw_rp = raw_data[file_idx].p;
+        if (offset + raw_rp.size() > static_cast<size_t>(c_problem->rp_size)) {
+            LOG_ERROR("Runtime parameters out of range.");
+            abort();
+        }
+
+        std::memcpy(c_problem->rp + offset, raw_rp.data(), raw_rp.size() * sizeof(f64));
+        offset += raw_rp.size();
+    }
+}
+
+/**
+ * @brief Interpolate the raw data trajectories onto a given mesh (interpolated_data),
+ *        extract the controls and write them into c_problem->data as contiguous memory for callbacks.
+ *        -> No more interpolation needed during the optimization callbacks / only lookup.
+ */
+void Problem::fill_data(const Mesh& mesh) {
+    int block_size = 0;
+    for (int file_idx = 0; file_idx < c_problem->data_file_count; file_idx++) {
+        interpolated_data[file_idx] = raw_data[file_idx].interpolate_onto_mesh(mesh);
+        block_size += static_cast<int>(raw_data[file_idx].u.size());
+    }
+
+    if (block_size == 0) {
+        c_problem->data = nullptr;
+        c_problem->data_chunk_size = 0;
+        return;
+    }
+
+    flat_interpolated_input_data = FixedVector<f64>(block_size * (mesh.node_count + 1));
+
+    c_problem->data_chunk_size = block_size;
+    c_problem->data = flat_interpolated_input_data.raw(); // ref to flat_interpolated_input_data
+
+    size_t offset = 0;
+    for (int t_idx = 0; t_idx < mesh.node_count + 1; t_idx++) {
+        for (int file_idx = 0; file_idx < c_problem->data_file_count; file_idx++) {
+            auto& u = interpolated_data[file_idx].u;
+            for (size_t u_idx = 0; u_idx < u.size(); u_idx++) {
+                flat_interpolated_input_data[offset + u_idx] = u[u_idx][t_idx];
+            }
+            offset += u.size();
+        }
+    }
 }
 
 Problem::Problem(c_problem_t* c_problem, const Mesh& mesh, std::shared_ptr<Trajectory[]> raw_data)
@@ -393,50 +472,6 @@ Problem Problem::create(c_problem_t* c_problem, const Mesh& mesh) {
     return Problem(c_problem, mesh, create_raw_data(c_problem));
 }
 
-void Problem::fill_runtime_parameters() {
-    size_t offset = 0;
-    for (int file_idx = 0; file_idx < c_problem->data_file_count; file_idx++) {
-        auto const& raw_rp = raw_data[file_idx].p;
-        if (offset + raw_rp.size() > static_cast<size_t>(c_problem->rp_size)) {
-            LOG_ERROR("Runtime parameters out of range.");
-            abort();
-        }
-
-        std::memcpy(c_problem->rp + offset, raw_rp.data(), raw_rp.size() * sizeof(f64));
-        offset += raw_rp.size();
-    }
-}
-
-void Problem::fill_data(const Mesh& mesh) {
-    int block_size = 0;
-    for (int file_idx = 0; file_idx < c_problem->data_file_count; file_idx++) {
-        interpolated_data[file_idx] = raw_data[file_idx].interpolate_onto_mesh(mesh);
-        block_size += static_cast<int>(raw_data[file_idx].u.size());
-    }
-
-    if (block_size == 0) {
-        c_problem->data = nullptr;
-        c_problem->data_chunk_size = 0;
-        return;
-    }
-
-    flat_interpolated_data = FixedVector<f64>(block_size * (mesh.node_count + 1));
-
-    c_problem->data_chunk_size = block_size;
-    c_problem->data = flat_interpolated_data.raw();
-
-    size_t offset = 0;
-    for (int t_idx = 0; t_idx < mesh.node_count + 1; t_idx++) {
-        for (int file_idx = 0; file_idx < c_problem->data_file_count; file_idx++) {
-            auto& u = interpolated_data[file_idx].u;
-            for (size_t u_idx = 0; u_idx < u.size(); u_idx++) {
-                flat_interpolated_data[offset + u_idx] = u[u_idx][t_idx];
-            }
-            offset += u.size();
-        }
-    }
-}
-
 
 /* here is probably not the correct place for these */
 /*
@@ -451,26 +486,5 @@ void __used_in_nominal_scaling_factor(c_problem_t* c_problem) {
     auto r_nominal = assign_or_one(c_problem->r_nominal, c_problem->r_size);
 }
 */
-
-// === helpers ===
-
-size_t accumulate_data_size(c_problem_t* c_problem, std::unique_ptr<ControlTrajectory[]>& raw_ctrl_data) {
-    size_t size = 0;
-    for (int file_idx = 0; file_idx < c_problem->data_file_count; file_idx++) {
-        size += raw_ctrl_data[file_idx].u.size();
-    }
-    return size;
-}
-
-std::unique_ptr<ControlTrajectory[]> extract_ctrl_data(c_problem_t* c_problem, std::shared_ptr<Trajectory[]>& raw_data) {
-    auto ctrl = std::make_unique<ControlTrajectory[]>(c_problem->data_file_count);
-    for (int file_idx = 0; file_idx < c_problem->data_file_count; file_idx++) {
-        raw_data[file_idx].print_table();
-        ctrl[file_idx] = raw_data[file_idx].copy_extract_controls();
-        ctrl[file_idx].print_table();
-    }
-
-    return ctrl;
-}
 
 } // namespace C
