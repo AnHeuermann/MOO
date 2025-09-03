@@ -40,7 +40,6 @@ void set_global_configuration(Config& config) {
 }
 
 // TODO: make this clean
-// TODO: add printout emit
 int main_gdopt(int argc, char** argv, c_problem_t* c_problem) {
     LOG_PREFIX('*', "Entry point [OPT] - main_gdopt\n");
 

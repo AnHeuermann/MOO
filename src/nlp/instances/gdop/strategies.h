@@ -330,6 +330,12 @@ public:
     int operator()(const PrimalDualTrajectory& trajectory) override;
 };
 
+// -- emit optimal solution as printout --
+class MOO_EXPORT PrintEmitter : public Emitter {
+public:
+    int operator()(const PrimalDualTrajectory& trajectory) override;
+};
+
 // -- verify optimality by full simulation and state comparison with given norm --
 class MOO_EXPORT SimulationVerifier : public Verifier {
 public:

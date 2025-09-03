@@ -319,6 +319,9 @@ CSVEmitter::CSVEmitter(std::string filename) : filename(filename) {}
 
 int CSVEmitter::operator()(const PrimalDualTrajectory& trajectory) { return trajectory.primals->to_csv(filename); }
 
+// print emit
+int PrintEmitter::operator()(const PrimalDualTrajectory& trajectory) { trajectory.primals->print_table(); return 0; }
+
 // simulation-based verification
 SimulationVerifier::SimulationVerifier(std::shared_ptr<Simulation> simulation,
                                        Linalg::Norm norm,
