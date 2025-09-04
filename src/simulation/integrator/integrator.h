@@ -23,6 +23,7 @@
 
 #include <base/util.h>
 #include <base/log.h>
+#include <base/export.h>
 #include <base/fixed_vector.h>
 #include <base/trajectory.h>
 
@@ -30,7 +31,7 @@
 
 namespace Simulation {
 
-class Integrator {
+class MOO_EXPORT Integrator {
 public:
     Integrator(ODEFunction ode_fn,
                std::vector<f64> dense_output_grid,
@@ -44,8 +45,11 @@ public:
                Jacobian jac_pattern);
 
     virtual ~Integrator() = default;
+    Integrator(Integrator&&) noexcept = default;
 
     std::unique_ptr<Trajectory> simulate();
+    std::unique_ptr<Trajectory> simulate(f64* x_start_values_, std::vector<f64> dense_output_grid_);
+    std::unique_ptr<Trajectory> simulate(f64* x_start_values_, f64 t0_, f64 tf_, int steps_);
 
     void get_ode(f64 t, f64* x, f64* out);
     void get_dense_jacobian(f64 t, f64* x, f64* out);

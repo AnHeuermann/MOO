@@ -61,7 +61,7 @@ struct MOO_EXPORT ControlTrajectory {
     void interpolate_at_polynomial(f64 t_query, f64* interpolation_values) const;
 
     // dumps
-    void print_table();
+    void print_table() const;
 
     // I/O
     int to_csv(const std::string& filename) const;
@@ -104,7 +104,8 @@ struct MOO_EXPORT Trajectory {
 
     // extract + copy information from the trajectory
     ControlTrajectory copy_extract_controls() const;
-    FixedVector<f64> extract_initial_states() const; 
+    FixedVector<f64> extract_initial_states() const;
+    FixedVector<f64> extract_final_states() const;
 
     // compare with other trajectory
     FixedVector<f64> state_errors(const Trajectory& other, Linalg::Norm norm) const;

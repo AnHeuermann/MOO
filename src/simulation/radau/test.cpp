@@ -29,7 +29,7 @@ namespace Simulation {
 
 void fcn(const f64* x, const f64* u, const f64* p, f64 t, f64* dxdt, void* user_data) {
     dxdt[0] = -x[0];
-    dxdt[1] = x[0] - 2 * x[1] * p[1] + p[0];
+    dxdt[1] = x[0] - 2 * x[1] * p[1] + p[0] + u[0];
 }
 
 void jac(const f64* x, const f64* u, const f64* p, f64 t, f64* J, void* user_data) {
@@ -39,23 +39,23 @@ void jac(const f64* x, const f64* u, const f64* p, f64 t, f64* J, void* user_dat
 }
 
 int radau_wrapper_test() {
-    f64 x_start[2] = {1, -1};
+    FixedVector<f64> x_start = {1, -1};
 
     auto dummy_control = ControlTrajectory{{0, 1}, {{-1, 1}}};
 
     int nnz = 3;
-    int row[] = { 0, 1, 1 };
-    int col[] = { 0, 0, 1 };
+    int rowidx[] = { 0, 1, 1 };
+    int colptr[] = { 0, 2, 3 };
 
-    Jacobian jac_pattern = Jacobian::sparse(JacobianFormat::COO, row, col, nnz);
+    Jacobian jac_pattern = Jacobian::sparse(JacobianFormat::CSC, rowidx, colptr, nnz);
 
     f64 parameters[] = { -1.0, 1.0 };
 
     auto radau_integrator = RadauBuilder()
                                 .ode(fcn)
-                                .states(x_start, 2)
+                                .states(2, x_start.raw())
                                 .control(&dummy_control)
-                                .params(parameters, 2)
+                                .params(2, parameters)
                                 .jacobian(jac, jac_pattern)
                                 .interval(0, 1, 10)
                                 .radau_scheme(RadauScheme::ADAPTIVE)

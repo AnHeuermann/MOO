@@ -65,3 +65,19 @@ void MeshRefinementOrchestrator::optimize() {
 }
 
 } // namespace GDOP
+
+
+/*
+TODO:
+    const auto& optimum = *gdop.get_optimal_solution();
+    const auto& controls = optimum.primals->copy_extract_controls();
+
+    strategies->simulate_step_activate(controls, FixedVector<f64>(optimum.primals->p));
+    auto res = strategies->simulate_step(optimum.primals->extract_initial_states().raw(), optimum.primals->t[0], optimum.primals->t.back() / 2);
+    res->print_table();
+    auto newx = res->extract_final_states();
+    res = strategies->simulate_step(newx.raw(), optimum.primals->t.back() / 2 , optimum.primals->t.back());
+    res->print_table();
+
+    strategies->simulate_step_reset();
+*/

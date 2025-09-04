@@ -48,6 +48,26 @@ Integrator::Integrator(ODEFunction ode_fn,
       last_t(MINUS_INFINITY),
       sparse_jac(FixedVector<f64>(this->jac_pattern.nnz)) {}
 
+/**
+ * @brief Override current dense_output_grid and start simulating at new states x_start_values
+ */
+std::unique_ptr<Trajectory> Integrator::simulate(f64* x_start_values_, std::vector<f64> dense_output_grid_) {
+    x_start_values = x_start_values_;
+    dense_output_grid = dense_output_grid_;
+    return simulate();
+}
+
+/**
+ * @brief Override current dense_output_grid and start simulating at new states x_start_values
+ */
+std::unique_ptr<Trajectory> Integrator::simulate(f64* x_start_values_, f64 t0_, f64 tf_, int steps_) {
+    x_start_values = x_start_values_;
+    dense_output_grid = std::vector<f64>(steps_ + 1);
+    f64 dt = (tf_ - t0_) / steps_;
+    for (int i = 0; i <= steps_; i++) dense_output_grid[i] = t0_ + i * dt;
+    return simulate();
+}
+
 std::unique_ptr<Trajectory> Integrator::simulate() {
     if (internal_controls) set_controls(dense_output_grid[0]);
 

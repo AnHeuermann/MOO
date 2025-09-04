@@ -119,6 +119,16 @@ FixedVector<f64> Trajectory::extract_initial_states() const {
     return x0;
 }
 
+FixedVector<f64> Trajectory::extract_final_states() const {
+    FixedVector<f64> xf(x.size());
+
+    for (size_t x_idx = 0; x_idx < x.size(); x_idx++) {
+        xf[x_idx] = x[x_idx].back();
+    }
+
+    return xf;
+}
+
 FixedVector<f64> Trajectory::state_errors_inf_norm(const Trajectory& other) const {
     FixedVector<f64> max_abs_errors(x.size());
 
@@ -221,7 +231,7 @@ ControlTrajectory Trajectory::copy_extract_controls() const {
     return controls_copy;
 }
 
-void ControlTrajectory::print_table() {
+void ControlTrajectory::print_table() const {
     print_trajectory_table(t, { {"u", u} }, "", {}, "ControlTrajectory Table");
 }
 

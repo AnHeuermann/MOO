@@ -21,6 +21,7 @@
 #ifndef MOO_RADAU_WRAPPER_H
 #define MOO_RADAU_WRAPPER_H
 
+#include <base/export.h>
 #include <simulation/integrator/integrator.h>
 
 extern "C" {
@@ -71,11 +72,13 @@ enum RadauScheme {
     THIRTEEN = 13
 };
 
-class RadauIntegrator : public Integrator {
+class MOO_EXPORT RadauIntegrator : public Integrator {
 
 friend class RadauBuilder;
 
 public:
+    RadauIntegrator(RadauIntegrator&&) noexcept = default;
+
     int internal_simulate() override;
 
     RadauScheme scheme;
@@ -84,8 +87,13 @@ public:
     f64 rtol;
     int max_it;
 
-    int return_code;
-    size_t dense_output_index;
+    int lwork;
+    int liwork;
+
+    std::vector<f64> work;
+    std::vector<int> iwork;
+
+    int ijac;
 
     /* args we dont change at all */
     int itol = 0;
@@ -94,6 +102,8 @@ public:
     int imas = 0;
     int mlmas = 0;
     int mumas = 0;
+    int return_code = 0;
+    size_t dense_output_index = 0;
     int iout = 1;
     f64 rpar[10] = {0}; 
     int ipar[10] = {0};

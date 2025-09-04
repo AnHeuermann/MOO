@@ -35,8 +35,11 @@ std::unique_ptr<Trajectory> NoSimulation::operator()(const ControlTrajectory& co
 }
 
 // no simulation step available
-std::unique_ptr<Trajectory> NoSimulationStep::operator()(const ControlTrajectory& controls, const FixedVector<f64>& parameters,
-                                                         f64 start_time, f64 stop_time, f64* x_start_values) {
+void NoSimulationStep::activate(const ControlTrajectory& controls, const FixedVector<f64>& parameters) {}
+
+void NoSimulationStep::reset() {}
+
+std::unique_ptr<Trajectory> NoSimulationStep::operator()(f64* x_start_values, f64 start_time, f64 stop_time) {
     LOG_WARNING("No SimulationStep strategy set: returning nullptr.");
     return nullptr;
 }
@@ -143,6 +146,8 @@ std::unique_ptr<Trajectory> RadauIntegratorSimulation::operator()(
     f64 stop_time,
     f64* x_start_values)
 {
+    dynamics.allocate();
+
     auto ode_f_fn = [this](const f64* x, const f64* u, const f64* p, f64 t, f64* f, void* user_data) {
         return this->dynamics.eval(x, u, p, t, f, user_data);
     };
@@ -151,11 +156,11 @@ std::unique_ptr<Trajectory> RadauIntegratorSimulation::operator()(
         return this->dynamics.jac(x, u, p, t, dfdx, user_data);
     };
 
-    return ::Simulation::RadauBuilder()
+    auto res = ::Simulation::RadauBuilder()
                 .interval(start_time, stop_time, num_steps)
-                .states(x_start_values, dynamics.pc.x_size)
+                .states(dynamics.pc.x_size, x_start_values)
                 .control(&controls)
-                .params(parameters.raw(), parameters.int_size())
+                .params(parameters.int_size(), parameters.raw())
                 .ode(ode_f_fn)
                 .jacobian(ode_jac_fn, dynamics.jac_pattern)
                 .radau_scheme(::Simulation::RadauScheme::ADAPTIVE)
@@ -163,6 +168,58 @@ std::unique_ptr<Trajectory> RadauIntegratorSimulation::operator()(
                 .radau_max_it(5e6)
                 .build()
                 .simulate();
+
+    dynamics.free();
+
+    return res;
+}
+
+RadauIntegratorSimulationStep::RadauIntegratorSimulationStep(Dynamics& dynamics) : dynamics(dynamics) {}
+
+void RadauIntegratorSimulationStep::activate(
+    const ControlTrajectory& controls,
+    const FixedVector<f64>& parameters)
+{
+    auto ode_f_fn = [this](const f64* x, const f64* u, const f64* p, f64 t, f64* f, void* user_data) {
+        return this->dynamics.eval(x, u, p, t, f, user_data);
+    };
+
+    auto ode_jac_fn = [this](const f64* x, const f64* u, const f64* p, f64 t, f64* dfdx, void* user_data) {
+        return this->dynamics.jac(x, u, p, t, dfdx, user_data);
+    };
+
+    auto builder = ::Simulation::RadauBuilder()
+                        .states(dynamics.pc.x_size)
+                        .control(&controls)
+                        .params(parameters.int_size(), parameters.raw())
+                        .ode(ode_f_fn)
+                        .jacobian(ode_jac_fn, dynamics.jac_pattern)
+                        .radau_scheme(::Simulation::RadauScheme::ADAPTIVE)
+                        .radau_tol(1e-10, 1e-10)
+                        .radau_max_it(5e6);
+
+    integrator = std::make_unique<::Simulation::RadauIntegrator>(builder.build());
+
+    dynamics.allocate();
+}
+
+void RadauIntegratorSimulationStep::reset()
+{
+    integrator = nullptr; // delete captured integrator
+    dynamics.free();      // free allocated structures from user callbacks
+}
+
+std::unique_ptr<Trajectory> RadauIntegratorSimulationStep::operator()(
+    f64* x_start_values,
+    f64 start_time,
+    f64 stop_time)
+{
+    if (!integrator) {
+        LOG_ERROR("RadauIntegrator has not been allocated: returning nullptr.");
+        return nullptr;
+    }
+
+    return integrator->simulate(x_start_values, start_time, stop_time, 1);
 }
 
 std::vector<f64> LinearInterpolation::operator()(
@@ -334,7 +391,7 @@ bool SimulationVerifier::operator()(const GDOP& gdop, const PrimalDualTrajectory
     auto extracted_parameters = FixedVector<f64>(trajectory_primal->p);       // extract parameters from the trajectory
 
     extracted_controls.interpolation = InterpolationMethod::POLYNOMIAL;
-    auto exctracted_x0      = trajectory_primal->extract_initial_states();  // extract x(t_0) from the trajectory
+    auto exctracted_x0      = trajectory_primal->extract_initial_states();    // extract x(t_0) from the trajectory
 
     // perform simulation using the controls, gdop config and a high number of nodes
     int  high_node_count    = 1 * gdop.get_mesh().node_count;

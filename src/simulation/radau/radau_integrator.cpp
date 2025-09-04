@@ -48,8 +48,48 @@ RadauIntegrator::RadauIntegrator(/* generic Integrator */
       atol(atol),
       rtol(rtol),
       max_it(max_it),
-      return_code(0),
-      dense_output_index(0) {}
+      lwork(20 + 8 * x_size * (3 + x_size)),
+      liwork(20 + 5 * x_size),
+      work(std::vector<f64>(lwork, 0.0)),
+      iwork(std::vector<int> (liwork, 0)),
+      ijac((jac_func) ? 1 : 0)
+    {
+        iwork[1] = max_it;
+
+        switch (scheme)
+        {
+            case RadauScheme::ONE:
+                iwork[10] = 1; /* min_m */
+                iwork[11] = 1; /* max_m */
+                iwork[12] = 1; /* start_m */
+                break;
+
+            case RadauScheme::FIVE:
+                iwork[10] = 3; /* min_m */
+                iwork[11] = 3; /* max_m */
+                iwork[12] = 3; /* start_m */
+                break;
+
+            case RadauScheme::NINE:
+                iwork[10] = 5; /* min_m */
+                iwork[11] = 5; /* max_m */
+                iwork[12] = 5; /* start_m */
+                break;
+
+            case RadauScheme::THIRTEEN:
+                iwork[10] = 7; /* min_m */
+                iwork[11] = 7; /* max_m */
+                iwork[12] = 7; /* start_m */
+                break;
+
+            case RadauScheme::ADAPTIVE:
+            default:
+                iwork[10] = 1; /* min_m */
+                iwork[11] = 7; /* max_m */
+                iwork[12] = 5; /* start_m */
+                break;
+        }
+    }
 
 extern "C" void radau_fcn_wrapper(
     int* n,
@@ -113,7 +153,7 @@ extern "C" void dense_output(
 
         integrator->set_controls(t_eval);
 
-        for (int u_idx = 0; u_idx < integrator->u_size; ++u_idx) {
+        for (int u_idx = 0; u_idx < integrator->u_size; u_idx++) {
             output->u[u_idx].push_back(u_t_eval[u_idx]);
         }
 
@@ -127,49 +167,7 @@ int RadauIntegrator::internal_simulate() {
     f64 t0 = dense_output_grid[0];
     f64 tf = dense_output_grid.back();
 
-    int ijac = (jac_func) ? 1 : 0;
-    
-    int lwork = 20 + 8 * x_size * (3 + x_size);
-    int liwork = 20 + 5 * x_size;
-
-    std::vector<f64> work(lwork, 0.0);
-    std::vector<int> iwork(liwork, 0);
-
-    iwork[1] = max_it;
-
-    switch (scheme)
-    {
-        case RadauScheme::ONE:
-            iwork[10] = 1; /* min_m */
-            iwork[11] = 1; /* max_m */
-            iwork[12] = 1; /* start_m */
-            break;
-        
-        case RadauScheme::FIVE:
-            iwork[10] = 3; /* min_m */
-            iwork[11] = 3; /* max_m */
-            iwork[12] = 3; /* start_m */
-            break;
-
-        case RadauScheme::NINE:
-            iwork[10] = 5; /* min_m */
-            iwork[11] = 5; /* max_m */
-            iwork[12] = 5; /* start_m */
-            break;
-
-        case RadauScheme::THIRTEEN:
-            iwork[10] = 7; /* min_m */
-            iwork[11] = 7; /* max_m */
-            iwork[12] = 7; /* start_m */
-            break;
-
-        case RadauScheme::ADAPTIVE:
-        default:
-            iwork[10] = 1; /* min_m */
-            iwork[11] = 7; /* max_m */
-            iwork[12] = 5; /* start_m */
-            break;
-    }
+    dense_output_index = 0;
 
     radau_integrator = this;
 

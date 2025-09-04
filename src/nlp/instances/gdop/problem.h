@@ -32,6 +32,8 @@
 
 #include <simulation/integrator/integrator_util.h>
 
+// TODO: add documentations / doxygen everywhere
+
 namespace GDOP {
 
 struct MOO_EXPORT ProblemConstants {
@@ -105,8 +107,8 @@ struct MOO_EXPORT FullSweepLayout {
     FixedVector<FunctionLFG> f;     // Dynamic Equations
     FixedVector<FunctionLFG> g;     // Path Constraints
 
-    HessianLFG hes;              //  Hessian (excluding parameters)
-    ParameterHessian pp_hes; //  Hessian (parameters only)
+    HessianLFG hes;                 //  Hessian (excluding parameters)
+    ParameterHessian pp_hes;        //  Hessian (parameters only)
 
     FullSweepLayout(bool lagrange_exists,
                     int size_f,
@@ -307,6 +309,9 @@ public:
       jac_pattern(jac_pattern) {}
 
     virtual ~Dynamics() = default;
+
+    virtual void allocate() {};
+    virtual void free() {};
 
     virtual void eval(const f64* x, const f64* u, const f64* p, f64 t, f64* f, void* user_data) { LOG_ERROR("Dynamics evaluation not implemented: use different simulation option."); abort(); }
     virtual void jac(const f64* x, const f64* u, const f64* p, f64 t, f64* dfdx, void* user_data) { LOG_ERROR("Dynamics Jacobian not implemented: use different simulation option."); abort(); }

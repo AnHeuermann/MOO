@@ -111,8 +111,11 @@ public:
  */
 class MOO_EXPORT SimulationStep {
 public:
-    virtual std::unique_ptr<Trajectory> operator()(const ControlTrajectory& controls, const FixedVector<f64>& parameters,
-                                                   f64 start_time, f64 stop_time, f64* x_start_values) = 0;
+    virtual void activate(const ControlTrajectory& controls, const FixedVector<f64>& parameters) = 0; // TODO: make this shared ptrs?
+    virtual void reset() = 0;
+
+    virtual std::unique_ptr<Trajectory> operator()(f64* x_start_values, f64 start_time, f64 stop_time) = 0;
+
     virtual ~SimulationStep() = default;
 };
 
@@ -200,8 +203,10 @@ public:
 
 class MOO_EXPORT NoSimulationStep : public SimulationStep {
 public:
-    std::unique_ptr<Trajectory> operator()(const ControlTrajectory& controls, const FixedVector<f64>& parameters,
-                                           f64 start_time, f64 stop_time, f64* x_start_values) override;
+    void activate(const ControlTrajectory& controls, const FixedVector<f64>& parameters) override;
+    void reset() override;
+
+    std::unique_ptr<Trajectory> operator()(f64* x_start_values, f64 start_time, f64 stop_time) override;
 };
 
 class MOO_EXPORT NoMeshRefinement : public MeshRefinement {
@@ -274,8 +279,16 @@ private:
 
 class MOO_EXPORT RadauIntegratorSimulationStep : public SimulationStep {
 public:
-    std::unique_ptr<Trajectory> operator()(const ControlTrajectory& controls, const FixedVector<f64>& parameters,
-                                           f64 start_time, f64 stop_time, f64* x_start_values) override;
+    RadauIntegratorSimulationStep(Dynamics& dynamics);
+
+    void activate(const ControlTrajectory& controls, const FixedVector<f64>& parameters) override;
+    void reset() override;
+
+    std::unique_ptr<Trajectory> operator()(f64* x_start_values, f64 start_time, f64 stop_time) override;
+
+private:
+    Dynamics& dynamics;
+    std::unique_ptr<::Simulation::RadauIntegrator> integrator = nullptr; // created in allocate
 };
 
 // -- uses fLGR scheme to interpolate States and Controls --
@@ -389,9 +402,16 @@ public:
         return (*simulation)(controls, parameters, num_steps, start_time, stop_time, x_start_values);
     }
 
-    auto simulate_step(const ControlTrajectory& controls, const FixedVector<f64>& parameters,
-                       f64 start_time, f64 stop_time, f64* x_start_values) {
-        return (*simulation_step)(controls, parameters, start_time, stop_time, x_start_values);
+    auto simulate_step_activate(const ControlTrajectory& controls, const FixedVector<f64>& parameters) {
+        return simulation_step->activate(controls, parameters);
+    }
+
+    auto simulate_step(f64* x_start_values, f64 start_time, f64 stop_time) {
+        return (*simulation_step)(x_start_values, start_time, stop_time);
+    }
+
+    auto simulate_step_reset() {
+        return simulation_step->reset();
     }
 
     auto detect(const Mesh& mesh, const PrimalDualTrajectory& trajectory) {

@@ -24,6 +24,6 @@
 #include <base/log.h>
 
 int main(int argc, char** argv) {
-    // Simulation::radau_wrapper_test();
+    Simulation::radau_wrapper_test();
     main_generated(argc, argv);
 }

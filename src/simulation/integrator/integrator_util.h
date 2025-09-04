@@ -22,6 +22,7 @@
 #define MOO_INTEGRATOR_UTIL_H
 
 #include <base/util.h>
+#include <base/export.h>
 
 namespace Simulation {
 
@@ -31,7 +32,7 @@ enum class JacobianFormat {
     CSC
 };
 
-class Jacobian {
+class MOO_EXPORT Jacobian {
 public:
     static Jacobian dense();
     static Jacobian sparse(JacobianFormat sparse_fmt, int* i_row, int* j_col, int nnz);

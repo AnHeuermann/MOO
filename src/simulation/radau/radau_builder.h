@@ -23,12 +23,13 @@
 
 #include <vector>
 
+#include <base/export.h>
 #include <simulation/integrator/builder.h>
 #include <simulation/radau/radau_integrator.h>
 
 namespace Simulation {
 
-class RadauBuilder : public IntegratorBuilder<RadauBuilder, RadauIntegrator>{
+class MOO_EXPORT RadauBuilder : public IntegratorBuilder<RadauBuilder, RadauIntegrator>{
 public:
     RadauBuilder() : IntegratorBuilder() {}
 

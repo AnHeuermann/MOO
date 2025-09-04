@@ -23,18 +23,19 @@
 
 #include <vector>
 
+#include <base/export.h>
 #include <simulation/integrator/integrator.h>
 
 namespace Simulation {
 
 template <typename BuilderImpl, typename IntegratorImpl>
-class IntegratorBuilder {
+class MOO_EXPORT IntegratorBuilder {
 public:
     virtual ~IntegratorBuilder() = default;
 
-    BuilderImpl& states(f64* x_start_values_, int x_size_) {
-        x_start_values = x_start_values_;
+    BuilderImpl& states(int x_size_, f64* x_start_values_ = nullptr) {
         x_size = x_size_;
+        x_start_values = x_start_values_;
         return static_cast<BuilderImpl&>(*this);
     }
 
@@ -67,9 +68,9 @@ public:
         return static_cast<BuilderImpl&>(*this);
     }
 
-    BuilderImpl& params(const f64* parameters_, int p_size_) {
-        parameters = parameters_;
+    BuilderImpl& params(int p_size_, const f64* parameters_ = nullptr) {
         p_size = p_size_;
+        parameters = parameters_;
         return static_cast<BuilderImpl&>(*this);
     }
 

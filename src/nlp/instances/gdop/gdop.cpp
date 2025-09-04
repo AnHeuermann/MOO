@@ -1095,6 +1095,7 @@ std::unique_ptr<Trajectory> GDOP::finalize_optimal_primals(const FixedVector<f64
     optimal_primals->x.resize(off_x);
     optimal_primals->u.resize(off_u);
     optimal_primals->inducing_mesh = mesh->shared_from_this();
+    optimal_primals->interpolation = InterpolationMethod::POLYNOMIAL;
 
     for (auto& v : optimal_primals->x) { v.reserve(mesh->node_count + 1); }
     for (auto& v : optimal_primals->u) { v.reserve(mesh->node_count + 1); }
@@ -1190,6 +1191,7 @@ std::unique_ptr<CostateTrajectory> GDOP::finalize_optimal_costates(const FixedVe
     optimal_costates->costates_f.resize(f_size);
     optimal_costates->costates_g.resize(g_size);
     optimal_costates->inducing_mesh = mesh->shared_from_this();
+    optimal_costates->interpolation = InterpolationMethod::POLYNOMIAL;
 
     for (auto& v : optimal_costates->costates_f) { v.reserve(mesh->node_count + 1); }
     for (auto& v : optimal_costates->costates_g) { v.reserve(mesh->node_count + 1); }
@@ -1315,6 +1317,7 @@ std::pair<std::unique_ptr<Trajectory>, std::unique_ptr<Trajectory>> GDOP::finali
         traj.u.resize(off_u);
         traj.p.resize(off_p);
         traj.inducing_mesh = mesh->shared_from_this();
+        traj.interpolation = InterpolationMethod::POLYNOMIAL;
 
         for (auto& v : traj.x) { v.reserve(mesh->node_count + 1); }
         for (auto& v : traj.u) { v.reserve(mesh->node_count + 1); }
