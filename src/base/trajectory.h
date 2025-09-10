@@ -64,7 +64,7 @@ struct MOO_EXPORT ControlTrajectory {
     void print_table() const;
 
     // I/O
-    int to_csv(const std::string& filename) const;
+    int to_csv(const std::string& filename, bool write_header = true) const;
     static ControlTrajectory from_csv(const std::string& filename);
 };
 
@@ -118,7 +118,7 @@ struct MOO_EXPORT Trajectory {
     void print_table();
 
     // I/O
-    int to_csv(const std::string& filename) const;
+    int to_csv(const std::string& filename, bool write_header = true) const;
     static Trajectory from_csv(const std::string& filename);
 };
 
@@ -166,7 +166,7 @@ struct MOO_EXPORT CostateTrajectory {
     void print_table();
 
     // I/O
-    int to_csv(const std::string& filename) const;
+    int to_csv(const std::string& filename, bool write_header = true) const;
     static CostateTrajectory from_csv(const std::string& filename);
 };
 
@@ -232,7 +232,8 @@ bool check_time_compatibility(
 int write_csv(const std::string& filename,
               const std::vector<f64>& t,
               const std::vector<DynamicField>& dynamics,
-              const std::vector<StaticField>& statics);
+              const std::vector<StaticField>& statics,
+              bool write_header = true);
 
 void read_csv(
     const std::string& filename,

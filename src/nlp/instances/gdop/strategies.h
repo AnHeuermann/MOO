@@ -337,8 +337,9 @@ public:
 class MOO_EXPORT CSVEmitter : public Emitter {
 public:
     std::string filename;
+    bool write_header;
 
-    CSVEmitter(std::string filename);
+    CSVEmitter(std::string filename, bool write_header = true);
 
     int operator()(const PrimalDualTrajectory& trajectory) override;
 };

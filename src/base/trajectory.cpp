@@ -82,7 +82,7 @@ void Trajectory::print_table() {
     "Trajectory Table");
 }
 
-int Trajectory::to_csv(const std::string& filename) const {
+int Trajectory::to_csv(const std::string& filename, bool write_header) const {
     std::vector<DynamicField> dynamics;
     if (!x.empty()) dynamics.push_back({"x", x});
     if (!u.empty()) dynamics.push_back({"u", u});
@@ -90,7 +90,7 @@ int Trajectory::to_csv(const std::string& filename) const {
     std::vector<StaticField> statics;
     if (!p.empty()) statics.push_back({"p", p});
 
-    return write_csv(filename, t, dynamics, statics);
+    return write_csv(filename, t, dynamics, statics, write_header);
 }
 
 Trajectory Trajectory::from_csv(const std::string& filename) {
@@ -235,11 +235,11 @@ void ControlTrajectory::print_table() const {
     print_trajectory_table(t, { {"u", u} }, "", {}, "ControlTrajectory Table");
 }
 
-int ControlTrajectory::to_csv(const std::string& filename) const {
+int ControlTrajectory::to_csv(const std::string& filename, bool write_header) const {
     std::vector<DynamicField> dynamics;
     if (!u.empty()) dynamics.push_back({"u", u});
     std::vector<StaticField> statics;
-    return write_csv(filename, t, dynamics, statics);
+    return write_csv(filename, t, dynamics, statics, write_header);
 }
 
 ControlTrajectory ControlTrajectory::from_csv(const std::string& filename) {
@@ -362,7 +362,7 @@ void ControlTrajectory::interpolate_at(f64 t_query, f64* interpolation_values) c
 
 // === Dual Trajectory ===
 
-int CostateTrajectory::to_csv(const std::string& filename) const {
+int CostateTrajectory::to_csv(const std::string& filename, bool write_header) const {
     std::vector<DynamicField> dynamics;
     if (!costates_f.empty()) dynamics.push_back({"λ_f", costates_f});
     if (!costates_g.empty()) dynamics.push_back({"λ_g", costates_g});
@@ -370,7 +370,7 @@ int CostateTrajectory::to_csv(const std::string& filename) const {
     std::vector<StaticField> statics;
     if (!costates_r.empty()) statics.push_back({"λ_r", costates_r});
 
-    return write_csv(filename, t, dynamics, statics);
+    return write_csv(filename, t, dynamics, statics, write_header);
 }
 
 CostateTrajectory CostateTrajectory::from_csv(const std::string& filename) {
@@ -610,7 +610,7 @@ void print_trajectory(
         std::cout << "]\n";
     };
 
-    print_vector("t", t);
+    print_vector("time", t);
     for (const auto& [name, mat] : fields) {
         print_matrix(name, mat);
     }
@@ -627,7 +627,7 @@ void print_trajectory_table(
     size_t N = t.size();
 
     std::vector<std::string> col_names;
-    col_names.push_back("t");
+    col_names.push_back("time");
     for (const auto& [name, mat] : fields) {
         for (size_t var_idx = 0; var_idx < mat.size(); var_idx++) {
             col_names.push_back(fmt::format("{}[{}]", name, var_idx + 1));
@@ -699,7 +699,8 @@ int write_csv(
     const std::string& filename,
     const std::vector<f64>& t,
     const std::vector<DynamicField>& dynamics,
-    const std::vector<StaticField>& statics)
+    const std::vector<StaticField>& statics,
+    bool write_header)
 {
     std::ofstream file(filename);
     if (!file.is_open()) {
@@ -709,35 +710,37 @@ int write_csv(
 
     file << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10);
 
-    // --- sections / header ---
-    size_t col_index = 0;
-    file << "# time: " << col_index << "\n";
-    col_index++;
+    if (write_header) {
+        // --- sections / header ---
+        size_t col_index = 0;
+        file << "# time: " << col_index << "\n";
+        col_index++;
 
-    for (const auto& dyn : dynamics) {
-        size_t dim = dyn.data.empty() ? 0 : dyn.data.size();
-        file << "# dynamic: \"" << dyn.name << "\", [";
-        for (size_t var_idx = 0; var_idx < dim; var_idx++) {
-            file << (col_index + var_idx);
-            if (var_idx + 1 < dim) file << ",";
+        for (const auto& dyn : dynamics) {
+            size_t dim = dyn.data.empty() ? 0 : dyn.data.size();
+            file << "# dynamic: \"" << dyn.name << "\", [";
+            for (size_t var_idx = 0; var_idx < dim; var_idx++) {
+                file << (col_index + var_idx);
+                if (var_idx + 1 < dim) file << ",";
+            }
+            file << "]\n";
+            col_index += dim;
         }
-        file << "]\n";
-        col_index += dim;
-    }
 
-    for (const auto& st : statics) {
-        size_t dim = st.data.size();
-        file << "# static: \"" << st.name << "\", [";
-        for (size_t var_idx = 0; var_idx < dim; var_idx++) {
-            file << (col_index + var_idx);
-            if (var_idx + 1 < dim) file << ",";
+        for (const auto& st : statics) {
+            size_t dim = st.data.size();
+            file << "# static: \"" << st.name << "\", [";
+            for (size_t var_idx = 0; var_idx < dim; var_idx++) {
+                file << (col_index + var_idx);
+                if (var_idx + 1 < dim) file << ",";
+            }
+            file << "]\n";
+            col_index += dim;
         }
-        file << "]\n";
-        col_index += dim;
     }
 
     // --- column names ---
-    file << "t";
+    file << "time";
     for (const auto& dyn : dynamics) {
         size_t dim = dyn.data.empty() ? 0 : dyn.data.size();
         for (size_t var_idx = 0; var_idx < dim; var_idx++) file << "," << dyn.name << "_" << var_idx;
@@ -757,7 +760,7 @@ int write_csv(
             }
         }
 
-        if (t_idx == 0) {
+        if (t_idx == 0 || !write_header) {
             for (const auto& st : statics) {
                 for (f64 val : st.data) file << "," << val;
             }
@@ -859,7 +862,7 @@ void read_csv(
         size_t col_idx = 0;
         while (std::getline(strs_header, cell, ',')) {
             cell.erase(std::remove_if(cell.begin(), cell.end(), isspace), cell.end());
-            if (cell == "t") {
+            if (cell == "time") {
                 final_time_index = col_idx;
             } else if (!cell.empty()) {
                 size_t underscore = cell.rfind('_');
