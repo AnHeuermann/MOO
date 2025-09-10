@@ -150,6 +150,12 @@ struct MOO_EXPORT BlockSparsity {
                return access(row, col);
         }
     }
+
+    void print() const {
+        for (auto const& v : block) {
+            v.print();
+        }
+    }
 };
 
 struct MOO_EXPORT OrderedIndexSet {
@@ -167,6 +173,7 @@ struct MOO_EXPORT OrderedIndexSet {
 
     void insert_sparsity(const std::vector<HessianSparsity>& hes, int row_off, int col_off) {
         for (auto coo : hes) {
+            assert(coo.row + row_off >= coo.col + col_off); // Hessian must be lower triangular!
             set.insert({coo.row + row_off, coo.col + col_off});
         }
     }

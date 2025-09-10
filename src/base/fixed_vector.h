@@ -32,6 +32,10 @@
 #include <base/util.h>
 #include <base/export.h>
 
+// the asserts in this file interact very badly with gdb (disable it when observing questionable behavior)
+// #undef assert
+// #define assert(expr) ((void)0)
+
 // helpers to distinguish iterator and range base field initialization
 template<typename It, typename = void>
 struct is_iterator : std::false_type {};
@@ -99,7 +103,7 @@ public:
 
     // access vector at index 0 <= index < vec.size()
     constexpr T& operator[](std::size_t index) {
-        assert(index < _size); // this assert interacts very badly with the debugger (disable it when observing questionable behavior)
+        assert(index < _size);
 
         return _data[index];
     }
