@@ -203,6 +203,62 @@ endif()
 
 ###### END DEPENDENCIES
 
+###### START HANDLE NON MSYS MAKEFILES ON WIN
+
+if(WIN32)
+    if(NOT CMAKE_GENERATOR STREQUAL "MSYS Makefiles")
+        if(CMAKE_VERSION VERSION_LESS "3.21")
+            message(FATAL_ERROR "Building MOO on Windows with Generator != 'MSYS Makefiles' requires CMake >= 3.21 for FindMsys support")
+        endif()
+
+        find_package(Msys REQUIRED)
+        find_program(MSYS_BASH bash PATHS ${MSYS_INSTALL_PATH}/usr/bin REQUIRED)
+        set(MOO_SHELL "${MSYS_BASH}")
+        set(MOO_DOWNLOAD_SHELL "${MSYS_BASH}")
+    else()
+        set(MOO_SHELL "")
+        set(MOO_DOWNLOAD_SHELL "sh")
+    endif()
+else()
+    set(MOO_SHELL "sh")
+    set(MOO_DOWNLOAD_SHELL "sh")
+endif()
+
+message(STATUS "Using MOO_SHELL: ${MSYS_BASH}")
+message(STATUS "Using MOO_DOWNLOAD_SHELL: ${MOO_DOWNLOAD_SHELL}")
+
+# Function: make_posix_path(VAR_NAME OUT_VAR)
+#   VAR_NAME   : the name of the input variable (e.g., CMAKE_C_COMPILER)
+#   OUT_VAR    : the name of the output variable (e.g., CMAKE_C_COMPILER_POSIX)
+function(make_posix_path VAR_NAME OUT_VAR)
+    set(_in_value "${${VAR_NAME}}")
+
+    if (WIN32 AND (NOT CMAKE_GENERATOR STREQUAL "MSYS Makefiles"))
+        set(CYGPATH "${MSYS_INSTALL_PATH}/usr/bin/cygpath.exe")
+
+        # Convert to Posix-style path
+        execute_process(
+            COMMAND ${CYGPATH} -u "${_in_value}"
+            OUTPUT_VARIABLE _posix_value
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+        )
+
+        # Export to the requested output variable
+        set(${OUT_VAR} "${_posix_value}" PARENT_SCOPE)
+    else()
+        # On Linux/macOS or in MSYS just copy the original
+        set(${OUT_VAR} "${_in_value}" PARENT_SCOPE)
+    endif()
+endfunction()
+
+make_posix_path(CMAKE_C_COMPILER CMAKE_C_COMPILER_POSIX)
+make_posix_path(CMAKE_CXX_COMPILER CMAKE_CXX_COMPILER_POSIX)
+make_posix_path(CMAKE_Fortran_COMPILER CMAKE_Fortran_COMPILER_POSIX)
+make_posix_path(MOO_LAPACK_LIB_STRING MOO_LAPACK_LIB_STRING_POSIX)
+make_posix_path(CMAKE_CURRENT_SOURCE_DIR CMAKE_CURRENT_SOURCE_DIR_POSIX)
+make_posix_path(CMAKE_CURRENT_BINARY_DIR CMAKE_CURRENT_BINARY_DIR_POSIX)
+
+###### END HANDLE NON MSYS MAKEFILES ON WIN
 
 ###### START BUILD + COMPILER FLAGS
 
@@ -297,7 +353,7 @@ if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/third-party/mumps/MUMPS)
         message(WARNING "patch not found! MUMPS download might fail.")
     endif()
     message(STATUS "Downloading mumps sources...")
-    execute_process(COMMAND sh ./get.Mumps WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/third-party/mumps)
+    execute_process(COMMAND ${MOO_DOWNLOAD_SHELL} ./get.Mumps WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/third-party/mumps)
 else()
     message(STATUS "MUMPS sources found")
 endif()
@@ -305,14 +361,15 @@ endif()
 ExternalProject_Add(moo_coinmumps
     SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/third-party/mumps
     BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/third-party/mumps
-    CONFIGURE_COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/third-party/mumps/configure
-        CC=${CMAKE_C_COMPILER}
-        CXX=${CMAKE_CXX_COMPILER}
-        FC=${CMAKE_Fortran_COMPILER}
+    CONFIGURE_COMMAND ${MOO_SHELL}
+        ${CMAKE_CURRENT_SOURCE_DIR_POSIX}/third-party/mumps/configure
+        CC=${CMAKE_C_COMPILER_POSIX}
+        CXX=${CMAKE_CXX_COMPILER_POSIX}
+        FC=${CMAKE_Fortran_COMPILER_POSIX}
         ADD_CFLAGS=-O3
         ADD_FCFLAGS=-O3
         ADD_CXXFLAGS=-O3
-        --with-lapack=${MOO_LAPACK_LIB_STRING}
+        --with-lapack=${MOO_LAPACK_LIB_STRING_POSIX}
         --enable-shared=no
         --enable-static=yes
     BUILD_COMMAND ${MOO_SUBMAKE_CMD}
@@ -330,32 +387,33 @@ set_target_properties(moo::coinmumps PROPERTIES
 
 add_dependencies(moo::coinmumps moo_coinmumps)
 
-set(MUMPS_LFLAGS "-L${CMAKE_CURRENT_BINARY_DIR}/third-party/mumps/.libs")
+set(MUMPS_LFLAGS_POSIX "-L${CMAKE_CURRENT_BINARY_DIR_POSIX}/third-party/mumps/.libs")
 
-set(MUMPS_CFLAGS
+set(MUMPS_CFLAGS_POSIX
     -DCOIN_USE_MUMPS_MPI_H
-    -I${CMAKE_CURRENT_BINARY_DIR}/third-party/mumps
-    -I${CMAKE_CURRENT_SOURCE_DIR}/third-party/mumps/MUMPS/include
-    -I${CMAKE_CURRENT_SOURCE_DIR}/third-party/mumps/MUMPS/libseq
+    -I${CMAKE_CURRENT_BINARY_DIR_POSIX}/third-party/mumps
+    -I${CMAKE_CURRENT_SOURCE_DIR_POSIX}/third-party/mumps/MUMPS/include
+    -I${CMAKE_CURRENT_SOURCE_DIR_POSIX}/third-party/mumps/MUMPS/libseq
 )
 
-string(JOIN " " MUMPS_CFLAGS_STRING ${MUMPS_CFLAGS})
+string(JOIN " " MUMPS_CFLAGS_STRING_POSIX ${MUMPS_CFLAGS_POSIX})
 
 ExternalProject_Add(moo_ipopt
     SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/third-party/ipopt
     BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/third-party/ipopt
-    CONFIGURE_COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/third-party/ipopt/configure
-        CC=${CMAKE_C_COMPILER}
-        CXX=${CMAKE_CXX_COMPILER}
-        FC=${CMAKE_Fortran_COMPILER}
+    CONFIGURE_COMMAND ${MOO_SHELL}
+    ${CMAKE_CURRENT_SOURCE_DIR_POSIX}/third-party/ipopt/configure
+        CC=${CMAKE_C_COMPILE_POSIX}
+        CXX=${CMAKE_CXX_COMPILER_POSIX}
+        FC=${CMAKE_Fortran_COMPILER_POSIX}
         ADD_CFLAGS=-O3
         ADD_FCFLAGS=-O3
         ADD_CXXFLAGS=-O3
-        --with-lapack=${MOO_LAPACK_LIB_STRING}
+        --with-lapack=${MOO_LAPACK_LIB_STRING_POSIX}
         --without-pardiso
         --with-mumps
-        --with-mumps-lflags=${MUMPS_LFLAGS}
-        --with-mumps-cflags=${MUMPS_CFLAGS_STRING}
+        --with-mumps-lflags=${MUMPS_LFLAGS_POSIX}
+        --with-mumps-cflags=${MUMPS_CFLAGS_STRING_POSIX}
         --enable-shared=no
         --enable-static=yes
         --disable-sipopt
