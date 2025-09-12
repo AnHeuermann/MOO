@@ -211,7 +211,7 @@ if(WIN32)
             message(FATAL_ERROR "Building MOO on Windows with Generator != 'MSYS Makefiles' requires CMake >= 3.21 for FindMsys support")
         endif()
 
-        find_package(Msys REQUIRED)
+        find_package(Msys) # setting 'REQUIRED', leads to failures somehow
         find_program(MSYS_BASH bash PATHS ${MSYS_INSTALL_PATH}/usr/bin REQUIRED)
         set(MOO_SHELL "${MSYS_BASH}")
         set(MOO_DOWNLOAD_SHELL "${MSYS_BASH}")
