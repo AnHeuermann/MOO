@@ -395,7 +395,8 @@ GDOP::Problem create_gdop_problem(c_problem_t* c_problem, const Mesh& mesh, std:
 std::shared_ptr<Trajectory[]> create_raw_data(c_problem_t* c_problem) {
     if (c_problem->data_file_count == 0) return nullptr;
 
-    std::shared_ptr<Trajectory[]> raw_data(new Trajectory[c_problem->data_file_count]);
+    std::shared_ptr<Trajectory[]> raw_data(new Trajectory[c_problem->data_file_count],
+                                           std::default_delete<Trajectory[]>());
 
     for (int i = 0; i < c_problem->data_file_count; i++) {
         raw_data[i] = Trajectory::from_csv(std::string(c_problem->data_filepath[i]));
