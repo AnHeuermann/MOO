@@ -175,7 +175,7 @@ void GDOP::get_initial_guess(
         flatten_trajectory_to_layout(*initial_guess_primal, x_init);
     }
     else {
-        LOG_ERROR("No primal initial guess supplied in GDOP::init_starting_point().");
+        Log::error("No primal initial guess supplied in GDOP::init_starting_point().");
     }
 
     if (initial_guess_costate) {

@@ -22,7 +22,6 @@
 #define MOO_INTEGRATOR_H
 
 #include <base/util.h>
-#include <base/log.h>
 #include <base/export.h>
 #include <base/fixed_vector.h>
 #include <base/trajectory.h>

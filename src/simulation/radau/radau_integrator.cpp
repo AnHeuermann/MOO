@@ -208,7 +208,7 @@ int RadauIntegrator::internal_simulate() {
         return return_code;
     }
 
-    LOG_SUCCESS("[Radau Integrator] Simulation finished successfully after {} iterations.", iwork[15]);
+    Log::success("[Radau Integrator] Simulation finished successfully after {} iterations.", iwork[15]);
 
     return 0;
 }

@@ -22,6 +22,7 @@
 #define MOO_RADAU_WRAPPER_H
 
 #include <base/export.h>
+#include <base/log.h>
 #include <simulation/integrator/integrator.h>
 
 extern "C" {

@@ -41,7 +41,7 @@ void set_global_configuration(Config& config) {
 
 // TODO: make this clean
 int main_gdopt(int argc, char** argv, c_problem_t* c_problem) {
-    LOG_PREFIX('*', "Entry point [OPT] - main_gdopt\n");
+    Log::prefixed('*', "Entry point [OPT] - main_gdopt\n");
 
     auto config = read_yaml();
     set_global_configuration(config);

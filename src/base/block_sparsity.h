@@ -130,7 +130,7 @@ struct MOO_EXPORT BlockSparsity {
             case BlockType::Exact:
                 return block[row][col];
             default:
-                LOG_ERROR("Unknown BlockType in BlockSparsity::access().");
+                Log::error("Unknown BlockType in BlockSparsity::access().");
                 abort();
         }
     }

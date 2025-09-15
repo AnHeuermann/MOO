@@ -45,7 +45,7 @@ public:
     }
 
     BuilderImpl& interval(f64 t0_, f64 tf_, int steps_) {
-        if (steps_ <= 0 || tf_ <= t0_) LOG_ERROR("Invalid interval");
+        if (steps_ <= 0 || tf_ <= t0_) Log::error("Invalid interval");
 
         t0 = t0_;
         tf = tf_;

@@ -29,6 +29,7 @@
 #include <type_traits>
 #include <iostream>
 
+#include <base/log.h>
 #include <base/util.h>
 #include <base/export.h>
 
@@ -222,14 +223,15 @@ public:
     }
 
     void print() const {
-        std::cout << "[";
+        std::string s = "[";
         for (std::size_t i = 0; i < _size; i++) {
-            std::cout << _data[i];
+            s += fmt::format("{}", _data[i]);
             if (i < _size - 1) {
-                std::cout << ", ";
+                s += ", ";
             }
         }
-        std::cout << "]" << std::endl;
+        s += "]";
+        Log::info("{}", s);
     }
 
 private:

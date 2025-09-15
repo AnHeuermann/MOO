@@ -29,7 +29,7 @@ Trajectory Trajectory::interpolate_onto_mesh(const Mesh& mesh) const {
         case InterpolationMethod::POLYNOMIAL:
             return interpolate_onto_mesh_polynomial(mesh);
         default:
-            LOG_ERROR("Unknown interpolation method!");
+            Log::error("Unknown interpolation method!");
             abort();
     }
 }
@@ -137,7 +137,7 @@ FixedVector<f64> Trajectory::state_errors_inf_norm(const Trajectory& other) cons
         const auto& x_traj_2 = other.x[x_idx];
 
         if (x_traj_1.size() != x_traj_2.size()) {
-            LOG_ERROR("State trajectory length mismatch in Trajectory::state_errors_inf_norm.");
+            Log::error("State trajectory length mismatch in Trajectory::state_errors_inf_norm.");
             return max_abs_errors;
         }
 
@@ -161,7 +161,7 @@ FixedVector<f64> Trajectory::state_errors_2_norm(const Trajectory& other) const 
         const auto& x_traj_2 = other.x[x_idx];
 
         if (x_traj_1.size() != x_traj_2.size()) {
-            LOG_ERROR("State trajectory length mismatch in Trajectory::state_errors_2_norm.");
+            Log::error("State trajectory length mismatch in Trajectory::state_errors_2_norm.");
             return norm_errors;
         }
 
@@ -184,7 +184,7 @@ FixedVector<f64> Trajectory::state_errors_1_norm(const Trajectory& other) const 
         const auto& x_traj_2 = other.x[x_idx];
 
         if (x_traj_1.size() != x_traj_2.size()) {
-            LOG_ERROR("State trajectory length mismatch in Trajectory::state_errors_1_norm.");
+            Log::error("State trajectory length mismatch in Trajectory::state_errors_1_norm.");
             return norm_errors;
         }
 
@@ -200,7 +200,7 @@ FixedVector<f64> Trajectory::state_errors_1_norm(const Trajectory& other) const 
 
 FixedVector<f64> Trajectory::state_errors(const Trajectory& other, Linalg::Norm norm) const {
     if (this->t.size() != other.t.size()) {
-        LOG_ERROR("Time vector size mismatch in Trajectory::state_errors!");
+        Log::error("Time vector size mismatch in Trajectory::state_errors!");
         abort();
     }
 
@@ -212,7 +212,7 @@ FixedVector<f64> Trajectory::state_errors(const Trajectory& other, Linalg::Norm 
         case Linalg::Norm::NORM_1:
             return state_errors_1_norm(other);
         default:
-            LOG_ERROR("Unknown interpolation method!");
+            Log::error("Unknown interpolation method!");
             abort();
     }
 }
@@ -348,14 +348,14 @@ void ControlTrajectory::interpolate_at(f64 t_query, f64* interpolation_values) c
             return;
         case InterpolationMethod::POLYNOMIAL:
             if (!inducing_mesh) {
-                LOG_WARNING("ControlTrajectory in interpolate_at() not induced from a Mesh. Can't perform polynomial interpolation: fallback to interpolate_at_linear().");
+                Log::warning("ControlTrajectory in interpolate_at() not induced from a Mesh. Can't perform polynomial interpolation: fallback to interpolate_at_linear().");
                 interpolate_at_linear(t_query, interpolation_values);
             } else {
                 interpolate_at_polynomial(t_query, interpolation_values);
             }
             return;
         default:
-            LOG_ERROR("Unknown interpolation method!");
+            Log::error("Unknown interpolation method!");
             abort();
     }
 }
@@ -395,13 +395,13 @@ CostateTrajectory CostateTrajectory::interpolate_onto_mesh(const Mesh& mesh) con
             return interpolate_onto_mesh_linear(mesh);
         case InterpolationMethod::POLYNOMIAL:
             if (!inducing_mesh) {
-                LOG_WARNING("CostateTrajectory in interpolate_onto_mesh() not induced from a Mesh. Can't perform polynomial interpolation: fallback to interpolate_onto_mesh_linear().");
+                Log::warning("CostateTrajectory in interpolate_onto_mesh() not induced from a Mesh. Can't perform polynomial interpolation: fallback to interpolate_onto_mesh_linear().");
                 return interpolate_onto_mesh_linear(mesh);
             } else {
                 return interpolate_onto_mesh_polynomial(mesh);
             }
         default:
-            LOG_ERROR("Unknown interpolation method!");
+            Log::error("Unknown interpolation method!");
             abort();
     }
 }
@@ -465,7 +465,7 @@ bool check_time_compatibility(
 
     int expected_size = mesh.node_count + 1;
     if (static_cast<int>(t_vec.size()) != expected_size) {
-        LOG_WARNING("Time array is not compatible with given Mesh.");
+        Log::warning("Time array is not compatible with given Mesh.");
         return false;
     }
 
@@ -473,7 +473,7 @@ bool check_time_compatibility(
     for (int i = 0; i < mesh.intervals; i++) {
         for (int j = 0; j < mesh.nodes[i]; j++) {
             if (std::abs(t_vec[t_idx++] - mesh.t[i][j]) > tol) {
-                LOG_WARNING("Time array is not compatible with given Mesh.");
+                Log::warning("Time array is not compatible with given Mesh.");
                 return false;
             }
         }
@@ -482,7 +482,7 @@ bool check_time_compatibility(
     for (const auto& vect : fields_to_check) {
         for (const auto& field : vect) {
             if (static_cast<int>(field.size()) != static_cast<int>(t_vec.size())) {
-                LOG_WARNING("Time array is not compatible with given Mesh.");
+                Log::warning("Time array is not compatible with given Mesh.");
                 return false;
             }
         }
@@ -589,25 +589,27 @@ void print_trajectory(
     const std::vector<f64>& static_field)
 {
     auto print_vector = [](const std::string& name, const std::vector<f64>& vec) {
-        std::cout << name << " = [";
+        std::string s = name + " = [";
         for (size_t i = 0; i < vec.size(); ++i) {
-            std::cout << vec[i];
-            if (i + 1 < vec.size()) std::cout << ", ";
+            s += fmt::format("{}", vec[i]);
+            if (i + 1 < vec.size()) s += ", ";
         }
-        std::cout << "]\n";
+        s += "]";
+        Log::info(s);
     };
 
     auto print_matrix = [](const std::string& name, const std::vector<std::vector<f64>>& mat) {
-        std::cout << name << " = [\n";
+        std::string s = name + " = [\n";
         for (const auto& row : mat) {
-            std::cout << "  [";
+            s += "  [";
             for (size_t j = 0; j < row.size(); ++j) {
-                std::cout << row[j];
-                if (j + 1 < row.size()) std::cout << ", ";
+                s += fmt::format("{}", row[j]);
+                if (j + 1 < row.size()) s += ", ";
             }
-            std::cout << "],\n";
+            s += "],\n";
         }
-        std::cout << "]\n";
+        s += "]";
+        Log::info(s);
     };
 
     print_vector("time", t);
@@ -651,9 +653,9 @@ void print_trajectory_table(
     std::vector<Align> aligns(col_names.size(), Align::Right);
     TableFormat tf(widths, aligns);
 
-    LOG_START_MODULE(tf, title);
-    LOG_ROW(tf, col_names);
-    LOG_DASHES(tf);
+    Log::start_module(tf, title);
+    Log::row(tf, col_names);
+    Log::dashes(tf);
 
     for (size_t t_idx = 0; t_idx < N; t_idx++) {
         std::vector<std::string> row;
@@ -663,9 +665,9 @@ void print_trajectory_table(
                 row.push_back(fmt::format("{:.6e}", mat[var_idx][t_idx]));
             }
         }
-        LOG_ROW(tf, row);
+        Log::row(tf, row);
     }
-    LOG_DASHES_LN(tf);
+    Log::dashes_ln(tf);
 
     if (static_name != "") {
         std::string header1 = static_name;
@@ -681,12 +683,12 @@ void print_trajectory_table(
 
         TableFormat tfp({w1, w2}, {Align::Right, Align::Right});
 
-        LOG_ROW(tfp, {header1, header2});
-        LOG_DASHES(tfp);
+        Log::row(tfp, {header1, header2});
+        Log::dashes(tfp);
         for (size_t var_idx = 0; var_idx < static_field.size(); var_idx++) {
-            LOG_ROW(tfp, {fmt::format("{}[{}]", static_name, var_idx + 1), fmt::format("{:.6e}", static_field[var_idx])});
+            Log::row(tfp, {fmt::format("{}[{}]", static_name, var_idx + 1), fmt::format("{:.6e}", static_field[var_idx])});
         }
-        LOG_DASHES_LN(tfp);
+        Log::dashes_ln(tfp);
     }
 }
 
@@ -704,7 +706,7 @@ int write_csv(
 {
     std::ofstream file(filename);
     if (!file.is_open()) {
-        LOG_ERROR("Could not open file {}", filename);
+        Log::error("Could not open file {}", filename);
         abort();
     }
 
@@ -786,7 +788,7 @@ std::vector<size_t> parse_schema_indices(const std::string& colblock_str) {
             try {
                 indices.push_back(std::stoul(idx_str));
             } catch (const std::exception& e) {
-                LOG_ERROR("Invalid index in schema: {}", idx_str.c_str());
+                Log::error("Invalid index in schema: {}", idx_str.c_str());
                 return {};
             }
         }
@@ -802,7 +804,7 @@ void read_csv(
 {
     std::ifstream file(filename);
     if (!file.is_open()) {
-        LOG_ERROR("Could not open file {}", filename);
+        Log::error("Could not open file {}", filename);
         abort();
     }
 
@@ -843,7 +845,7 @@ void read_csv(
     }
     
     if (line.empty() && !file.eof()) {
-        LOG_ERROR("File contains schema but no header or data rows.");
+        Log::error("File contains schema but no header or data rows.");
         return;
     }
     
@@ -856,7 +858,7 @@ void read_csv(
         final_dyn_indices = schema_dyn_indices;
         final_stat_indices = schema_stat_indices;
     } else {
-        LOG_WARNING("No schema header found. Defaulting to dynamic fields based on column names.");
+        Log::warning("No schema header found. Defaulting to dynamic fields based on column names.");
         std::stringstream strs_header(line);
         std::string cell;
         size_t col_idx = 0;

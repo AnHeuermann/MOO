@@ -414,7 +414,7 @@ void Problem::fill_runtime_parameters() {
     for (int file_idx = 0; file_idx < c_problem->data_file_count; file_idx++) {
         auto const& raw_rp = raw_data[file_idx].p;
         if (offset + raw_rp.size() > static_cast<size_t>(c_problem->rp_size)) {
-            LOG_ERROR("Runtime parameters out of range.");
+            Log::error("Runtime parameters out of range.");
             abort();
         }
 

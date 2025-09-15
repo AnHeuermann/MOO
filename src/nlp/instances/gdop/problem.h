@@ -313,8 +313,8 @@ public:
     virtual void allocate() {};
     virtual void free() {};
 
-    virtual void eval(const f64* x, const f64* u, const f64* p, f64 t, f64* f, void* user_data) { LOG_ERROR("Dynamics evaluation not implemented: use different simulation option."); abort(); }
-    virtual void jac(const f64* x, const f64* u, const f64* p, f64 t, f64* dfdx, void* user_data) { LOG_ERROR("Dynamics Jacobian not implemented: use different simulation option."); abort(); }
+    virtual void eval(const f64* x, const f64* u, const f64* p, f64 t, f64* f, void* user_data) { Log::error("Dynamics evaluation not implemented: use different simulation option."); abort(); }
+    virtual void jac(const f64* x, const f64* u, const f64* p, f64 t, f64* dfdx, void* user_data) { Log::error("Dynamics Jacobian not implemented: use different simulation option."); abort(); }
 
     const ProblemConstants& pc;
     ::Simulation::Jacobian jac_pattern;
