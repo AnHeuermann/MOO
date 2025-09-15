@@ -27,7 +27,7 @@
 extern "C" {
     void radau_(
         int* n,
-        void (*fcn)(int*, f64*, f64*, f64*),
+        void (*fcn)(int*, f64*, f64*, f64*, f64*, int*),
         f64* x,
         f64* y,
         f64* xend,
@@ -35,11 +35,11 @@ extern "C" {
         f64* rtol,
         f64* atol,
         int* itol,
-        void (*jac)(int*, f64*, f64*, int*, int*, f64*, f64*),
+        void (*jac)(int*, f64*, f64*, f64*, int*, f64*, int*),
         int* ijac,
         int* mljac,
         int* mujac,
-        void (*mas)(int*, int*, f64*),
+        void (*mas)(int*, f64*, int*, f64*, int*),
         int* imas,
         int* mlmas,
         int* mumas,
@@ -55,10 +55,10 @@ extern "C" {
     );
 
     f64 contra_(
-        int*,
-        f64*,
-        f64*,
-        int*
+        int* i,
+        f64* s,
+        f64* cont,
+        int* lrc
     );
 }
 
@@ -105,8 +105,8 @@ public:
     int return_code = 0;
     size_t dense_output_index = 0;
     int iout = 1;
-    f64 rpar[10] = {0}; 
-    int ipar[10] = {0};
+    f64 rpar = 0;
+    int ipar = 0;
 
 private:
     RadauIntegrator(ODEFunction ode_fn,

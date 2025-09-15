@@ -48,10 +48,10 @@ RadauIntegrator::RadauIntegrator(/* generic Integrator */
       atol(atol),
       rtol(rtol),
       max_it(max_it),
-      lwork(20 + 8 * x_size * (3 + x_size)),
-      liwork(20 + 5 * x_size),
-      work(std::vector<f64>(lwork, 0.0)),
-      iwork(std::vector<int> (liwork, 0)),
+      lwork(20 + 10 * (x_size + 3 * x_size)),
+      liwork(20 + 8 * x_size),
+      work(lwork, 0.0),
+      iwork(liwork, 0),
       ijac((jac_func) ? 1 : 0)
     {
         iwork[1] = max_it;
@@ -91,32 +91,34 @@ RadauIntegrator::RadauIntegrator(/* generic Integrator */
         }
     }
 
-extern "C" void radau_fcn_wrapper(
+extern "C" void radau_function_wrapper(
     int* n,
     f64* t,
-    f64* y,
-    f64* dydx)
+    f64* x,
+    f64* f,
+    f64* rpar,
+    int* ipar)
 {
-    auto* self = static_cast<Simulation::Integrator*>(radau_integrator);
-    self->get_ode(*t, y, dydx);
+    auto* self = static_cast<Simulation::RadauIntegrator*>(radau_integrator);
+    self->get_ode(*t, x, f);
 }
 
 extern "C" void radau_dense_jac_wrapper(
     int* n,
     f64* t,
     f64* x,
-    int* ml,
-    int* mu,
-    f64* pd,
-    f64* pdata)
+    f64* dfx,
+    int* ldfx,
+    f64* rpar,
+    int* ipar)
 {
-    auto* self = static_cast<Simulation::Integrator*>(radau_integrator);
-    self->get_dense_jacobian(*t, x, pd);
+    auto* self = static_cast<Simulation::RadauIntegrator*>(radau_integrator);
+    self->get_dense_jacobian(*t, x, dfx);
 }
 
-extern "C" void no_mass(int* n, int* m, f64* data) {}
+extern "C" void radau_no_mass(int* n, f64* an, int* lmas, f64* rpar, int* ipar) {}
 
-extern "C" void dense_output(
+extern "C" void radau_dense_output(
     int* nr,
     f64* told,
     f64* t,
@@ -173,7 +175,7 @@ int RadauIntegrator::internal_simulate() {
 
     radau_(
         &x_size,
-        radau_fcn_wrapper,
+        radau_function_wrapper,
         &t0,
         x_start_values,
         &tf,
@@ -185,18 +187,18 @@ int RadauIntegrator::internal_simulate() {
         &ijac,
         &mljac,
         &mujac,
-        no_mass,
+        radau_no_mass,
         &imas,
         &mlmas,
         &mumas,
-        dense_output,
+        radau_dense_output,
         &iout,
         work.data(),
         &lwork,
         iwork.data(),
         &liwork,
-        rpar,
-        ipar,
+        &rpar,
+        &ipar, /* could be used to pass void* as intptr_t */
         &return_code
     );
 

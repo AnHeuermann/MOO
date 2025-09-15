@@ -457,14 +457,14 @@ target_include_directories(moo PRIVATE ${THIRD_PARTY_INSTALL_PREFIX}/include/coi
 
 target_link_directories(moo PRIVATE ${THIRD_PARTY_INSTALL_PREFIX}/lib)
 
-#add_compile_options(-fsanitize=undefined -fsanitize=address -fstack-protector-strong)
-#add_link_options(-fsanitize=undefined -fsanitize=address -fstack-protector-strong)
+# add_compile_options(-fsanitize=undefined -fsanitize=address -fstack-protector-strong)
+# add_link_options(-fsanitize=undefined -fsanitize=address -fstack-protector-strong)
 
 # TODO: Make it a clean build with -Wextra
 
 set(MOO_COMPILE_OPTIONS -Wall -fno-rtti -Wnon-virtual-dtor -pedantic)
 
-if(IS_GCC)
+if(IS_GCC AND NOT "${MOO_BUILD_TYPE}" STREQUAL "Debug")
     list(APPEND MOO_COMPILE_OPTIONS -fno-var-tracking-assignments)
 endif()
 

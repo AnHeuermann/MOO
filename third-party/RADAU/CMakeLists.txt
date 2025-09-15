@@ -12,7 +12,7 @@ if(MOO_WITH_RADAU)
         dc_lapack.f
     )
 
-    target_compile_options(radau PUBLIC -O3 -fPIC)
+    target_compile_options(radau PRIVATE -O3 -fPIC)
 
     target_link_libraries(radau PUBLIC ${MOO_LAPACK_LIB} ${MOO_GFORTRAN_LIB})
 
