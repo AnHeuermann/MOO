@@ -243,6 +243,11 @@ static inline std::string format_dashes(const TableFormat& tf) {
 namespace Log {
 
 // string overloads (already-formatted string)
+inline void info(const char* s)    { global_logger()->log(LogLevel::Info, std::string(s)); }
+inline void success(const char* s) { global_logger()->log(LogLevel::Success, std::string(s)); }
+inline void warning(const char* s) { global_logger()->log(LogLevel::Warning, std::string(s)); }
+inline void error(const char* s)   { global_logger()->log(LogLevel::Error, std::string(s)); }
+
 inline void info(const std::string& s)    { global_logger()->log(LogLevel::Info, s); }
 inline void success(const std::string& s) { global_logger()->log(LogLevel::Success, s); }
 inline void warning(const std::string& s) { global_logger()->log(LogLevel::Warning, s); }

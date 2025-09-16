@@ -18,6 +18,13 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+#include <IpIpoptData.hpp>
+#include <IpDenseVector.hpp>
+#include <IpSmartPtr.hpp>
+#include <IpIpoptApplication.hpp>
+#include <IpSolveStatistics.hpp>
+#include <IpJournalist.hpp>
+
 #include <base/nlp_structs.h>
 #include <base/log.h>
 
@@ -26,11 +33,82 @@
 
 namespace IpoptSolver {
 
+std::string vformat_no_newline(const char* format, va_list args) {
+    va_list args_copy;
+    va_copy(args_copy, args);
+    int len = vsnprintf(nullptr, 0, format, args_copy);
+    va_end(args_copy);
+
+    if (len < 0) {
+        return "";
+    }
+
+    std::string str(len + 1, '\0');
+    vsnprintf(str.data(), len + 1, format, args);
+    str.pop_back();
+
+    if (!str.empty() && str.back() == '\n') {
+        str.pop_back();
+    }
+
+    return str;
+}
+
+class LoggerJournal : public Ipopt::Journal {
+public:
+    LoggerJournal(const std::string& name, Ipopt::EJournalLevel default_level)
+    : Ipopt::Journal(name, Ipopt::EJournalLevel::J_ITERSUMMARY) {}
+
+protected:
+    void PrintImpl(Ipopt::EJournalCategory category, Ipopt::EJournalLevel level, const char* str) override
+    {
+        if (str == nullptr) return;
+        Log::info(str);
+    }
+
+    void PrintfImpl(Ipopt::EJournalCategory category, Ipopt::EJournalLevel level, const char* pformat, va_list ap) override
+    {
+        std::string formatted_message = vformat_no_newline(pformat, ap);
+
+        if (formatted_message.empty()) return;
+
+        switch (level) {
+            case Ipopt::J_ERROR:
+                Log::error(formatted_message);
+                break;
+            case Ipopt::J_STRONGWARNING:
+            case Ipopt::J_WARNING:
+                Log::warning(formatted_message);
+                break;
+            case Ipopt::J_SUMMARY:
+            case Ipopt::J_ITERSUMMARY:
+            case Ipopt::J_DETAILED:
+            case Ipopt::J_MOREDETAILED:
+            case Ipopt::J_VECTOR:
+            case Ipopt::J_MOREVECTOR:
+            case Ipopt::J_MATRIX:
+            case Ipopt::J_MOREMATRIX:
+            case Ipopt::J_ALL:
+                Log::info(formatted_message);
+                break;
+            default:
+                Log::info(formatted_message);
+                break;
+        }
+    }
+
+    void FlushBufferImpl() override {}
+};
+
 struct IpoptSolverData {
     Ipopt::SmartPtr<IpoptAdapter> adapter;
     Ipopt::SmartPtr<Ipopt::IpoptApplication> app;
 
-    IpoptSolverData(NLP::NLP& nlp) : adapter(new IpoptAdapter(nlp)), app(IpoptApplicationFactory()) {}
+    IpoptSolverData(NLP::NLP& nlp) : adapter(new IpoptAdapter(nlp)), app(IpoptApplicationFactory())
+    {
+        Ipopt::SmartPtr<Ipopt::Journal> moo_logger_journal = new LoggerJournal("LoggerImpl", Ipopt::J_DETAILED);
+        app->Jnlst()->AddJournal(moo_logger_journal);
+    }
 };
 
 IpoptSolver::IpoptSolver(NLP::NLP& nlp, NLP::NLPSolverSettings& solver_settings)
@@ -207,7 +285,8 @@ void IpoptSolver::set_settings() {
 
     // --- info ---
     ipdata->app->Options()->SetStringValue("timing_statistics", "yes");
-    ipdata->app->Options()->SetIntegerValue("print_level", 5);
+    ipdata->app->Options()->SetIntegerValue("print_level", 0);
+    ipdata->app->Options()->SetIntegerValue("file_print_level", 0);
 
     // --- derivative test (optional) ---
     if (solver_settings.option_is_true(NLP::Option::IpoptDerivativeTest)) {
