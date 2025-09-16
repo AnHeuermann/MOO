@@ -44,13 +44,13 @@ public:
     virtual ~Logger() = default;
 
     // implementations should print a newline
-    virtual void log(LogLevel lvl, const char* msg) = 0;
+    virtual void log(LogLevel lvl, std::string msg) = 0;
 };
 
 // default stdout logger
 class StdoutLogger : public Logger {
 public:
-    void log(LogLevel lvl, const char* msg) override;
+    void log(LogLevel lvl, std::string msg) override;
 };
 
 namespace Log {
@@ -243,53 +243,53 @@ static inline std::string format_dashes(const TableFormat& tf) {
 namespace Log {
 
 // string overloads (already-formatted string)
-inline void info(const std::string& s)    { global_logger()->log(LogLevel::Info, s.c_str()); }
-inline void success(const std::string& s) { global_logger()->log(LogLevel::Success, s.c_str()); }
-inline void warning(const std::string& s) { global_logger()->log(LogLevel::Warning, s.c_str()); }
-inline void error(const std::string& s)   { global_logger()->log(LogLevel::Error, s.c_str()); }
+inline void info(const std::string& s)    { global_logger()->log(LogLevel::Info, s); }
+inline void success(const std::string& s) { global_logger()->log(LogLevel::Success, s); }
+inline void warning(const std::string& s) { global_logger()->log(LogLevel::Warning, s); }
+inline void error(const std::string& s)   { global_logger()->log(LogLevel::Error, s); }
 
 // format overloads
 template <typename... Args>
 inline void info(const char* fmtstr, Args&&... args) {
     auto s = LogFormatter::info_string(fmtstr, std::forward<Args>(args)...);
-    global_logger()->log(LogLevel::Info, s.c_str());
+    global_logger()->log(LogLevel::Info, s);
 }
 template <typename... Args>
 inline void success(const char* fmtstr, Args&&... args) {
     auto s = LogFormatter::success_string(fmtstr, std::forward<Args>(args)...);
-    global_logger()->log(LogLevel::Success, s.c_str());
+    global_logger()->log(LogLevel::Success, s);
 }
 template <typename... Args>
 inline void warning(const char* fmtstr, Args&&... args) {
     auto s = LogFormatter::warning_string(fmtstr, std::forward<Args>(args)...);
-    global_logger()->log(LogLevel::Warning, s.c_str());
+    global_logger()->log(LogLevel::Warning, s);
 }
 template <typename... Args>
 inline void error(const char* fmtstr, Args&&... args) {
     auto s = LogFormatter::error_string(fmtstr, std::forward<Args>(args)...);
-    global_logger()->log(LogLevel::Error, s.c_str());
+    global_logger()->log(LogLevel::Error, s);
 }
 
 // indent then log
 template <typename... Args>
 inline void info_t(int tabs, const char* fmtstr, Args&&... args) {
     auto s = format_with_indent(tabs, fmtstr, std::forward<Args>(args)...);
-    global_logger()->log(LogLevel::Info, s.c_str());
+    global_logger()->log(LogLevel::Info, s);
 }
 inline void info_t(int tabs, const std::string& s) {
     auto s2 = format_with_indent(tabs, s);
-    global_logger()->log(LogLevel::Info, s2.c_str());
+    global_logger()->log(LogLevel::Info, s2);
 }
 
 // prefix char then log
 template <typename... Args>
 inline void prefixed(char c, const char* fmtstr, Args&&... args) {
     auto s = format_with_prefix(c, fmtstr, std::forward<Args>(args)...);
-    global_logger()->log(LogLevel::Info, s.c_str());
+    global_logger()->log(LogLevel::Info, s);
 }
 inline void prefixed(char c, const std::string& s) {
     auto s2 = format_with_prefix(c, s);
-    global_logger()->log(LogLevel::Info, s2.c_str());
+    global_logger()->log(LogLevel::Info, s2);
 }
 
 // ---------------------------
@@ -299,13 +299,13 @@ inline void prefixed(char c, const std::string& s) {
 template <typename TableType>
 inline void start_module(const TableType& table, const std::string& title) {
     auto s = format_start_module(title, table.total_width());
-    global_logger()->log(LogLevel::Info, s.c_str());
+    global_logger()->log(LogLevel::Info, s);
 }
 
 template <typename TableType>
 inline void dashes(const TableType& table) {
     auto s = format_dashes(table);
-    global_logger()->log(LogLevel::Info, s.c_str());
+    global_logger()->log(LogLevel::Info, s);
 }
 
 template <typename TableType>
@@ -317,12 +317,12 @@ inline void dashes_ln(const TableType& table) {
 template <size_t N, typename... Args>
 inline void row(const FixedTableFormat<N>& ftf, Args&&... args) {
     auto s = format_row(ftf, std::forward<Args>(args)...);
-    global_logger()->log(LogLevel::Info, s.c_str());
+    global_logger()->log(LogLevel::Info, s);
 }
 
 inline void row(const TableFormat& tf, const std::vector<std::string>& cols) {
     auto s = format_row(tf, cols);
-    global_logger()->log(LogLevel::Info, s.c_str());
+    global_logger()->log(LogLevel::Info, s);
 }
 
 } // namespace Log

@@ -1,6 +1,6 @@
 #include "log.h"
 
-void StdoutLogger::log(LogLevel lvl, const char* msg)
+void StdoutLogger::log(LogLevel lvl, std::string msg)
 {
     switch (lvl) {
         case LogLevel::Info:
