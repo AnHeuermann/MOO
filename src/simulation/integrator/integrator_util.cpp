@@ -18,39 +18,28 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#ifndef MOO_UTIL_H
-#define MOO_UTIL_H
+#include <cassert>
 
-#include <functional>
-#include <iostream>
-#include <cstdio>
-#include <vector>
-#include <cmath>
-#include <any>
+#include <simulation/integrator/integrator_util.h>
 
-/* simple typedef for the Number, for using f32 or something later */
-typedef double f64;
+namespace Simulation {
 
-/* max f64 == _DBL_MAX_  */
-const f64 PLUS_INFINITY = std::numeric_limits<f64>::max();
+Jacobian::Jacobian(JacobianFormat jfmt,
+                   int* i_row,
+                   int* j_col,
+                   int nnz)
+    : jfmt(jfmt),
+      i_row(i_row),
+      j_col(j_col),
+      nnz(nnz) {}
 
-/* min f64 == -_DBL_MAX_ */
-const f64 MINUS_INFINITY = -std::numeric_limits<f64>::max();
-
-/* max size_t */
-const size_t MAX_SIZE = std::numeric_limits<size_t>::max();
-
-template <typename T>
-inline int int_size(const std::vector<T>& vec) {
-    return static_cast<int>(vec.size());
+Jacobian Jacobian::dense() {
+    return Jacobian(JacobianFormat::DENSE, nullptr, nullptr, 0);
 }
 
-template <typename T>
-inline T sign(T value) { return (value > 0 ? 1.0 : -1.0); }
-
-template <typename T>
-inline T apply_threshold_floor(T value, T tol, T min_magnitude) {
-    return (std::abs(value) < tol) ? sign(value) * min_magnitude : value;
+Jacobian Jacobian::sparse(JacobianFormat sparse_fmt, int* i_row, int* j_col, int nnz) {
+    assert(sparse_fmt != JacobianFormat::DENSE);
+    return Jacobian(sparse_fmt, i_row, j_col, nnz);
 }
 
-#endif // MOO_UTIL_H
+} // namespace Simulation

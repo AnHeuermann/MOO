@@ -18,39 +18,36 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#ifndef MOO_UTIL_H
-#define MOO_UTIL_H
+#ifndef MOO_RADAU_BUILDER_H
+#define MOO_RADAU_BUILDER_H
 
-#include <functional>
-#include <iostream>
-#include <cstdio>
 #include <vector>
-#include <cmath>
-#include <any>
 
-/* simple typedef for the Number, for using f32 or something later */
-typedef double f64;
+#include <base/export.h>
+#include <simulation/integrator/builder.h>
+#include <simulation/radau/radau_integrator.h>
 
-/* max f64 == _DBL_MAX_  */
-const f64 PLUS_INFINITY = std::numeric_limits<f64>::max();
+namespace Simulation {
 
-/* min f64 == -_DBL_MAX_ */
-const f64 MINUS_INFINITY = -std::numeric_limits<f64>::max();
+class MOO_EXPORT RadauBuilder : public IntegratorBuilder<RadauBuilder, RadauIntegrator>{
+public:
+    RadauBuilder() : IntegratorBuilder() {}
 
-/* max size_t */
-const size_t MAX_SIZE = std::numeric_limits<size_t>::max();
+    RadauBuilder& radau_scheme(RadauScheme radau_scheme_);
+    RadauBuilder& radau_h0(f64 h_init_);
+    RadauBuilder& radau_tol(f64 atol_, f64 rtol_);
+    RadauBuilder& radau_max_it(int max_it_);
 
-template <typename T>
-inline int int_size(const std::vector<T>& vec) {
-    return static_cast<int>(vec.size());
-}
+    RadauIntegrator build() const override;
 
-template <typename T>
-inline T sign(T value) { return (value > 0 ? 1.0 : -1.0); }
+private:
+    RadauScheme scheme = RadauScheme::ADAPTIVE;
+    f64 h_init = 1e-6;
+    f64 atol = 1e-10;
+    f64 rtol = 1e-10;
+    int max_it = 100000;
+};
 
-template <typename T>
-inline T apply_threshold_floor(T value, T tol, T min_magnitude) {
-    return (std::abs(value) < tol) ? sign(value) * min_magnitude : value;
-}
+} // namespace Simulation
 
-#endif // MOO_UTIL_H
+#endif // MOO_RADAU_BUILDER_H

@@ -18,39 +18,37 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#ifndef MOO_UTIL_H
-#define MOO_UTIL_H
+#ifndef MOO_INTEGRATOR_UTIL_H
+#define MOO_INTEGRATOR_UTIL_H
 
-#include <functional>
-#include <iostream>
-#include <cstdio>
-#include <vector>
-#include <cmath>
-#include <any>
+#include <base/util.h>
+#include <base/export.h>
 
-/* simple typedef for the Number, for using f32 or something later */
-typedef double f64;
+namespace Simulation {
 
-/* max f64 == _DBL_MAX_  */
-const f64 PLUS_INFINITY = std::numeric_limits<f64>::max();
+enum class JacobianFormat {
+    DENSE,
+    COO,
+    CSC
+};
 
-/* min f64 == -_DBL_MAX_ */
-const f64 MINUS_INFINITY = -std::numeric_limits<f64>::max();
+class MOO_EXPORT Jacobian {
+public:
+    static Jacobian dense();
+    static Jacobian sparse(JacobianFormat sparse_fmt, int* i_row, int* j_col, int nnz);
 
-/* max size_t */
-const size_t MAX_SIZE = std::numeric_limits<size_t>::max();
+    JacobianFormat jfmt;
+    int* i_row;
+    int* j_col;
+    int nnz;
 
-template <typename T>
-inline int int_size(const std::vector<T>& vec) {
-    return static_cast<int>(vec.size());
-}
+private:
+    Jacobian(JacobianFormat jfmt, int* i_row, int* j_col, int nnz);
+};
 
-template <typename T>
-inline T sign(T value) { return (value > 0 ? 1.0 : -1.0); }
+using ODEFunction = std::function<void(const f64* x, const f64* u, const f64* p, f64 t, f64* f, void* user_data)>;
+using JacobianFunction = std::function<void(const f64* x, const f64* u, const f64* p, f64 t, f64* dfdx, void* user_data)>;
 
-template <typename T>
-inline T apply_threshold_floor(T value, T tol, T min_magnitude) {
-    return (std::abs(value) < tol) ? sign(value) * min_magnitude : value;
-}
+} // namespace Simulation
 
-#endif // MOO_UTIL_H
+#endif // MOO_INTEGRATOR_UTIL_H

@@ -18,39 +18,20 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#ifndef MOO_UTIL_H
-#define MOO_UTIL_H
+#ifndef MOO_C_GDOPT_MAIN
+#define MOO_C_GDOPT_MAIN
 
-#include <functional>
-#include <iostream>
-#include <cstdio>
-#include <vector>
-#include <cmath>
-#include <any>
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-/* simple typedef for the Number, for using f32 or something later */
-typedef double f64;
+#include <base/export.h>
+#include <interfaces/c/structures.h>
 
-/* max f64 == _DBL_MAX_  */
-const f64 PLUS_INFINITY = std::numeric_limits<f64>::max();
+MOO_EXPORT int main_gdopt(int argc, char** argv, c_problem_t* c_problem);
 
-/* min f64 == -_DBL_MAX_ */
-const f64 MINUS_INFINITY = -std::numeric_limits<f64>::max();
-
-/* max size_t */
-const size_t MAX_SIZE = std::numeric_limits<size_t>::max();
-
-template <typename T>
-inline int int_size(const std::vector<T>& vec) {
-    return static_cast<int>(vec.size());
+#ifdef __cplusplus
 }
+#endif
 
-template <typename T>
-inline T sign(T value) { return (value > 0 ? 1.0 : -1.0); }
-
-template <typename T>
-inline T apply_threshold_floor(T value, T tol, T min_magnitude) {
-    return (std::abs(value) < tol) ? sign(value) * min_magnitude : value;
-}
-
-#endif // MOO_UTIL_H
+#endif // MOO_C_GDOPT_MAIN
