@@ -290,6 +290,7 @@ target_sources(moo PRIVATE
     src/base/fLGR.cpp
     src/base/trajectory.cpp
     src/base/mesh.cpp
+    src/base/log.cpp
     src/base/linalg.cpp
 
     # General Dynamic Optimization Problem

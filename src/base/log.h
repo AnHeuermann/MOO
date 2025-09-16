@@ -50,35 +50,13 @@ public:
 // default stdout logger
 class StdoutLogger : public Logger {
 public:
-    void log(LogLevel lvl, const char* msg) override {
-        switch (lvl) {
-            case LogLevel::Info:
-                fmt::print("{}\n", msg);
-                break;
-            case LogLevel::Success:
-                fmt::print("SUCCESS - {}\n", msg);
-                break;
-            case LogLevel::Warning:
-                fmt::print("WARNING - {}\n", msg);
-                break;
-            case LogLevel::Error:
-                fmt::print("ERROR - {}\n", msg);
-                break;
-        }
-    }
+    void log(LogLevel lvl, const char* msg) override;
 };
 
 namespace Log {
 
-// global logger accessor & setter
-inline std::shared_ptr<Logger>& global_logger() {
-    static std::shared_ptr<Logger> g = std::make_shared<StdoutLogger>();
-    return g;
-}
-
-inline void set_global_logger(std::shared_ptr<Logger> logger) {
-    global_logger() = std::move(logger);
-}
+MOO_EXPORT void set_global_logger(std::unique_ptr<Logger>&& logger);
+MOO_EXPORT Logger* global_logger();
 
 } // namespace Log
 
