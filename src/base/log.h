@@ -169,12 +169,12 @@ static inline std::string format_start_module(const std::string& title, int tabl
 }
 
 template <size_t N>
-static constexpr inline std::string format_dashes(const FixedTableFormat<N>& ftf) {
+static inline std::string format_dashes(const FixedTableFormat<N>& ftf) {
     return fmt::format("{:-<{}}", "", ftf.total_width());
 }
 
 template <size_t N, typename... Args>
-static constexpr inline std::string format_row(const FixedTableFormat<N>& ftf, Args&&... args) {
+static inline std::string format_row(const FixedTableFormat<N>& ftf, Args&&... args) {
     static_assert(sizeof...(Args) == N, "Number of columns must match format definition.");
     size_t i = 0;
     const char* sep = "";

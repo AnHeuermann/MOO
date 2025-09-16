@@ -281,6 +281,15 @@ else()
     message(STATUS "MOO_NATIVE_BUILD not defined: adding no additional compiler flags")
 endif()
 
+set(MOO_MUMPS_FORTRAN_FLAGS -O3)
+
+if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
+    # we need to add this for gfortran / f95 as there are size mismatches between metis and mumps type sizes
+    list(APPEND MOO_MUMPS_FORTRAN_FLAGS -fallow-argument-mismatch)
+endif()
+
+string(JOIN " " MOO_MUMPS_FORTRAN_FLAGS_STRING ${MOO_MUMPS_FORTRAN_FLAGS})
+
 ###### END BUILD + COMPILER FLAGS
 
 add_library(moo SHARED)
@@ -368,7 +377,7 @@ ExternalProject_Add(moo_coinmumps
         CXX=${CMAKE_CXX_COMPILER_POSIX}
         FC=${CMAKE_Fortran_COMPILER_POSIX}
         ADD_CFLAGS=-O3
-        ADD_FCFLAGS=-O3
+        ADD_FCFLAGS=${MOO_MUMPS_FORTRAN_FLAGS_STRING}
         ADD_CXXFLAGS=-O3
         --with-lapack=${MOO_LAPACK_LIB_STRING_POSIX}
         --enable-shared=no
