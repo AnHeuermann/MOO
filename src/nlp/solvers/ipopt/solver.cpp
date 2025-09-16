@@ -103,11 +103,15 @@ protected:
 struct IpoptSolverData {
     Ipopt::SmartPtr<IpoptAdapter> adapter;
     Ipopt::SmartPtr<Ipopt::IpoptApplication> app;
+    Ipopt::SmartPtr<Ipopt::Journal> logger_journal;
 
-    IpoptSolverData(NLP::NLP& nlp) : adapter(new IpoptAdapter(nlp)), app(IpoptApplicationFactory())
+    IpoptSolverData(NLP::NLP& nlp)
+        : adapter(new IpoptAdapter(nlp)),
+          app(IpoptApplicationFactory()),
+          logger_journal(new LoggerJournal("LoggerImpl", Ipopt::J_DETAILED))
     {
-        Ipopt::SmartPtr<Ipopt::Journal> moo_logger_journal = new LoggerJournal("LoggerImpl", Ipopt::J_DETAILED);
-        app->Jnlst()->AddJournal(moo_logger_journal);
+        app->Jnlst()->DeleteAllJournals();
+        app->Jnlst()->AddJournal(logger_journal);
     }
 };
 
@@ -285,8 +289,6 @@ void IpoptSolver::set_settings() {
 
     // --- info ---
     ipdata->app->Options()->SetStringValue("timing_statistics", "yes");
-    ipdata->app->Options()->SetIntegerValue("print_level", 0);
-    ipdata->app->Options()->SetIntegerValue("file_print_level", 0);
 
     // --- derivative test (optional) ---
     if (solver_settings.option_is_true(NLP::Option::IpoptDerivativeTest)) {
