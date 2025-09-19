@@ -1,5 +1,6 @@
 # Build directories
 build*/
+install*/
 out/
 bin/
 docs/
@@ -33,6 +34,9 @@ Makefile
 # Core dumps / crash logs
 core
 *.core
+
+# GitHub actions / nectos/act data
+/.artifacts/
 
 # IDE/Editor settings
 /.vscode/*

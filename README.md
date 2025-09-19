@@ -32,7 +32,6 @@ Install with your favorit package manager
 
   - Debian / Ubuntu `apt install libblas-dev liblapack-dev gfortran`
 
-
 ### Configure
 
 ```bash
@@ -53,7 +52,20 @@ cmake --build build --parallel <Nr. of cores> --target all
 
 ### Test
 
-Add `-DMOO_WITH_GDOPT_EXAMPLE=ON` to the configuration step.
+Add `-DMOO_WITH_GDOPT_EXAMPLE=ON` to the CMake configuration step.
+After building run the test:
+
+```bash
+./build/gdopt
+```
+
+### Development
+
+Use [act](https://github.com/nektos/act) to test the GitHub workflows locally:
+
+```bash
+act -P ubuntu-latest=catthehacker/ubuntu:full-latest --artifact-server-path $PWD/.artifacts
+```
 
 ## License
 
