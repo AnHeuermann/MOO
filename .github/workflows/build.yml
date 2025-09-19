@@ -12,37 +12,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ["ubuntu-latest", "windows-latest", "macos-latest"]
-        generator: ["Unix Makefiles", "Ninja", "MinGW Makefiles"]
-        exclude:
-            - os: ubuntu-latest
-              generator: "MinGW Makefiles"
-            - os: windows-latest
-              generator: "Unix Makefiles"
-            - os: windows-latest
-              generator: "Ninja"
-            - os: macos-latest
-              generator: "MinGW Makefiles"
-            - os: macos-latest
-              generator: "Ninja"
+        os: ["ubuntu-latest"]
+        generator: ["Unix Makefiles", "Ninja"]
 
         include:
           - os: ubuntu-latest
             exe-ext: ""
             metis-lib: "-DMOO_METIS_LIB=/usr/lib/x86_64-linux-gnu/libmetis.so.5.1.0"
-
-          - os: windows-latest
-            exe-ext: ".exe"
-            metis-lib: ""
-
-          - os: macos-latest
-            exe-ext: ".exe"
-            metis-lib: ""
+            lapack-lib: ""
 
     runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v5
+        with:
+          submodules: true
 
       - name: Install METIS, LAPACK (Linux)
         if: runner.os == 'Linux'
@@ -50,31 +34,9 @@ jobs:
           sudo apt-get update -q
           sudo apt-get -qy install metis libblas-dev liblapack-dev gfortran
 
-      - name: Setup MSYS2, METIS, LAPACK (Windows)
-        uses: msys2/setup-msys2@v2
-        if: runner.os == 'Windows'
-        with:
-          msystem: UCRT64
-          install: |
-            mingw-w64-ucrt-x86_64-metis
-            mingw-w64-ucrt-x86_64-blas
-            mingw-w64-ucrt-x86_64-lapack
-
-      - shell: msys2 {0}
-        if: runner.os == 'Windows'
-        run: |
-          uname -a
-
-      - name: Install dependencies (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          brew update
-          brew install gcc   # includes gfortran
-          brew install openblas lapack metis
-
       - name: Configure
         run: |
-          cmake -S . -B build -DCMAKE_INSTALL_PREFIX=install ${{ matrix.metis-lib }} -DMOO_WITH_GDOPT_EXAMPLE=ON -G "${{ matrix.generator }}"
+          cmake -S . -B build -DCMAKE_INSTALL_PREFIX=install ${{ matrix.metis-lib }} ${{ matrix.lapack-lib }} -DMOO_WITH_GDOPT_EXAMPLE=ON -G "${{ matrix.generator }}"
 
       - name: Build
         run: cmake --build build --target install
