@@ -39,11 +39,11 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Install METIS
+      - name: Install METIS, LAPACK
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update -q
-          sudo apt-get -qy install metis
+          sudo apt-get -qy install metis libblas-dev liblapack-dev gfortran
 
       - name: Configure
         run: |
