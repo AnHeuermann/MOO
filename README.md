@@ -1,3 +1,5 @@
+[![Build](https://github.com/AMIT-HSBI/MOO/actions/workflows/build.yml/badge.svg)](https://github.com/AMIT-HSBI/MOO/actions/workflows/build.yml)
+
 # **MOO: Modelica / Model Optimizer - A Generic Framework for Dynamic Optimization**
 
 This is **MOO: Modelica / Model Optimizer v.0.1.0**, a flexible and extensible
