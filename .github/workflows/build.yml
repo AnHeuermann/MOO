@@ -2,7 +2,7 @@ name: CMake Build
 
 on:
   push:
-    branches: ["main", "add-workflow"]
+    branches: ["main"]
   pull_request:
   workflow_dispatch:
 
@@ -12,13 +12,27 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ["ubuntu-latest"]
+        os: ["ubuntu-latest", "windows-latest", "macos-latest"]
+        generator: ["Unix Makefiles", "Ninja", "MSYS Makefiles", "MinGW Makefiles"]
+        exclude:
+            - os: ubuntu-latest
+              generator: "MSYS Makefiles"
+            - os: ubuntu-latest
+              generator: "MinGW Makefiles"
+            - os: macos-latest
+              generator: "MSYS Makefiles"
+            - os: macos-latest
+              generator: "MinGW Makefiles"
+            - os: windows-latest
+              generator: "Unix Makefiles"
+            - os: windows-latest
+              generator: "Ninja"
+
         include:
           - os: ubuntu-latest
             lib-ext: so
             exe-ext: ""
             metis-lib: /usr/lib/x86_64-linux-gnu/libmetis.so.5.1.0
-            generator: ["Unix Makefiles"]
 
     runs-on: ${{ matrix.os }}
 
@@ -46,5 +60,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: install-${{ matrix.os }}
+          name: install-${{ matrix.os }}-${{ matrix.generator }}
           path: install/
