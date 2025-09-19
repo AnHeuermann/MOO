@@ -17,21 +17,25 @@ jobs:
         exclude:
             - os: ubuntu-latest
               generator: "MinGW Makefiles"
-            - os: macos-latest
-              generator: "MinGW Makefiles"
             - os: windows-latest
               generator: "Unix Makefiles"
             - os: windows-latest
               generator: "Ninja"
+            - os: macos-latest
+              generator: "MinGW Makefiles"
+            - os: macos-latest
+              generator: "Ninja"
 
         include:
           - os: ubuntu-latest
-            lib-ext: so
             exe-ext: ""
-            metis-lib: -DMOO_METIS_LIB=/usr/lib/x86_64-linux-gnu/libmetis.so.5.1.0
+            metis-lib: "-DMOO_METIS_LIB=/usr/lib/x86_64-linux-gnu/libmetis.so.5.1.0"
 
-          - os: ubuntu-latest
-            lib-ext: dll
+          - os: windows-latest
+            exe-ext: ".exe"
+            metis-lib: ""
+
+          - os: macos-latest
             exe-ext: ".exe"
             metis-lib: ""
 
@@ -40,13 +44,13 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Install METIS, LAPACK
+      - name: Install METIS, LAPACK (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update -q
           sudo apt-get -qy install metis libblas-dev liblapack-dev gfortran
 
-      - name: Setup MSYS2, METIS, LAPACK
+      - name: Setup MSYS2, METIS, LAPACK (Windows)
         uses: msys2/setup-msys2@v2
         if: runner.os == 'Windows'
         with:
@@ -60,6 +64,13 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           uname -a
+
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew update
+          brew install gcc   # includes gfortran
+          brew install openblas lapack metis
 
       - name: Configure
         run: |
