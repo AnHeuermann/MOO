@@ -1,7 +1,3 @@
-# IDE/Editor settings
-.vscode/
-.idea/
-
 # Build directories
 build*/
 out/
@@ -37,3 +33,8 @@ Makefile
 # Core dumps / crash logs
 core
 *.core
+
+# IDE/Editor settings
+/.vscode/*
+!/.vscode/extensions.json
+.idea/

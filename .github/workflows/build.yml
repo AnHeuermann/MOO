@@ -1,0 +1,48 @@
+name: CMake Build
+
+on:
+  push:
+    branches: ['main']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ['ubuntu-latest']
+        include:
+          - os: ubuntu-latest
+            ext: so
+            metis: "/usr/lib/x86_64-linux-gnu/libmetis.so.5.1.0"
+          # - os: macos-latest
+          #   ext: dylib
+          # - os: windows-latest
+          #   ext: dll
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install METIS
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -q
+          sudo apt-get -qy install metis
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_INSTALL_PREFIX=install -DMOO_METIS_LIB=${{ matrix.metis }}
+
+      - name: Build
+        run: cmake --build build --target install
+
+      - name: Sanity Check
+        run: test -f install/lib/libmoo.${{ matrix.ext }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: install-${{ matrix.os }}
+          path: install/
